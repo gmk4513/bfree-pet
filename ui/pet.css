@@ -1,0 +1,88 @@
+/* ---------------------------------------------------------------
+   비프리 데스크톱 펫
+
+   창은 화면 전체를 덮는 투명한 판입니다. 그래서 여기서 배경을 칠하면
+   바탕화면을 통째로 가립니다. background 는 절대 넣지 마세요.
+   --------------------------------------------------------------- */
+
+:root {
+  --floor: 48px;          /* 작업표시줄 높이. pet.config.json 의 floorOffset 이 덮어씁니다 */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;    /* 이 줄이 전부입니다 */
+  user-select: none;
+  cursor: default;
+}
+
+/* ---------- 캐릭터 ---------- */
+
+/* 기준점만 잡습니다. 그림은 이 점을 중심으로 좌우로 뻗습니다. */
+.pet {
+  position: absolute;
+  left: 0;
+  bottom: var(--floor);
+  width: 0;
+  cursor: pointer;
+}
+
+.sprite {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  display: block;
+  transform-origin: 50% 100%;
+  image-rendering: pixelated;             /* 픽셀아트입니다. 부드럽게 늘리면 뭉갭니다 */
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+  pointer-events: none;                   /* 누르는 건 .pet 이 받습니다 */
+  -webkit-user-drag: none;
+}
+
+/* ---------- 말풍선 ---------- */
+
+.bubble {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  padding: 7px 11px;
+  background: #FBFBF7;
+  color: #1B1E21;
+  border: 1.5px solid #15181A;
+  border-radius: 7px;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: #FBFBF7;
+  border-right: 1.5px solid #15181A;
+  border-bottom: 1.5px solid #15181A;
+  transform: rotate(45deg);
+}
+
+.bubble.show { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { transition: none; }
+}

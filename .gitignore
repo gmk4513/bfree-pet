@@ -1,0 +1,19 @@
+node_modules/
+dist/
+target/
+src-tauri/target/
+src-tauri/gen/
+
+.DS_Store
+Thumbs.db
+*.log
+
+# 서명 키는 절대 올리지 않습니다
+*.p12
+*.pfx
+*.keystore
+.env
+.env.*
+
+# 홍보 문구는 공개 저장소에 두지 않습니다 (파일은 폴더에 그대로 있습니다)
+*_마케팅.txt

@@ -1,0 +1,25 @@
+[package]
+name = "bfree-pet"
+version = "0.1.0"
+description = "학사모 비프리 데스크톱 펫"
+authors = ["gangmin"]
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# macos-private-api 는 tauri.conf.json 의 macOSPrivateApi 와 짝입니다.
+# 둘 중 하나만 켜면 빌드가 막힙니다. 맥에서 투명 창을 쓰려면 둘 다 필요합니다.
+tauri = { version = "2", features = ["macos-private-api", "tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# 설치 파일을 작게 만듭니다. Snake Pet 이 4.8MB 였으니 비슷하게 나올 겁니다.
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
