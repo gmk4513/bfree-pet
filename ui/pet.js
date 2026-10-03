@@ -32,6 +32,8 @@ const SPRITES = {
   batk2:       { src: "sprites/batk2.png", w: 214, h: 300, ch: 296 },
   batk3:       { src: "sprites/batk3.png", w: 214, h: 300, ch: 298 },
   batk4:       { src: "sprites/batk4.png", w: 214, h: 300, ch: 298 },
+  batk5:       { src: "sprites/batk5.png", w: 213, h: 300, ch: 298 },
+  batk6:       { src: "sprites/batk6.png", w: 251, h: 300, ch: 300 },
   blift1:      { src: "sprites/blift1.png", w: 264, h: 300, ch: 292 },
   blift2:      { src: "sprites/blift2.png", w: 264, h: 300, ch: 293 },
   blift3:      { src: "sprites/blift3.png", w: 264, h: 300, ch: 298 },
@@ -104,7 +106,11 @@ Object.keys(SPRITES).forEach((k) => {
 const BASE_W = 135;        // 눌리는 영역을 잡을 때 쓰는 그림 폭 (bwalk 기준)
 
 let WALK = { frames: ["bwalk1", "bwalk2", "bwalk3", "bwalk4"], fps: 4 };
-const ATK  = ["batk1", "batk2", "batk3", "batk4"];
+/* 공격은 왼손 -> 오른손 -> 왼손 ... 으로 번갈아 나갑니다.
+   한쪽 손만 계속 뻗으면 때리는 게 아니라 같은 그림을 반복하는 걸로 보입니다.
+   batk3 이 왼손, batk6 이 오른손이고 batk2 / batk5 가 각자의 준비 자세입니다. */
+const ATK_L = ["batk1", "batk2", "batk3", "batk4"];
+const ATK_R = ["batk1", "batk5", "batk6", "batk5"];
 
 /* 동작과 그 동작에서 할 말을 한 곳에 묶습니다. 대사를 따로 두면
    "이 자세엔 무슨 말을 하지?" 를 코드 두 군데서 찾게 됩니다. */
@@ -174,7 +180,7 @@ const S = {
   until: 0,
   pose: null, frame: 0,
   nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0, poseIdx: 0,
-  y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0, atkHitDone: true,
+  y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0, atkHitDone: true, atkRight: false,
   keys: { left: false, right: false, jump: false, atk: false },
   clickThrough: true
 };
@@ -511,8 +517,10 @@ function tryAttack() {
   S.atkUntil = now + 560;
   S.atkFrom = now;
   S.atkHitDone = false;
+  S.atkRight = !S.atkRight;               // 왼손 / 오른손 번갈아
   play("attack");
 }
+function atkFrames() { return S.atkRight ? ATK_R : ATK_L; }
 function tryJump() {
   if (S.y > 0 || S.vy !== 0) return;      // 공중에서 또 못 뜁니다
   S.vy = cfg.size * JUMP_V;
@@ -576,7 +584,8 @@ function step(now) {
         S.x += S.dir * cfg.speed * 1.6 * dt;
         cycleFrames(now, WALK.frames, WALK.fps);
       } else if (swinging0) {
-        draw(ATK[Math.min(ATK.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+        const F = atkFrames();
+      draw(F[Math.min(F.length - 1, Math.floor((now - S.atkFrom) / 140))]);
       } else {
         draw("batk2");
         if (now >= S.atkUntil + 420) tryAttack();
@@ -619,7 +628,8 @@ function step(now) {
 
     if (swinging) {
       // 공중이든 땅이든 주먹이 먼저입니다. 점프 중에도 그대로 뻗습니다.
-      draw(ATK[Math.min(ATK.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+      const F = atkFrames();
+      draw(F[Math.min(F.length - 1, Math.floor((now - S.atkFrom) / 140))]);
     } else if (S.y > 0) {
       draw("bwalk3");
     } else if (mv) {
