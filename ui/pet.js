@@ -155,7 +155,7 @@ const POSES = [
 ];
 
 const FALLBACK = {
-  size: 104, speed: 38, walkSec: 6, restSec: 3.5,
+  size: 104, speed: 54, walkSec: 6, restSec: 3.5,
   bubbleGap: 3, bubbleHold: 4, walkScaleX: 1.17, walkScaleY: 1.00,
   floorOffset: 48,
   poses: ["lift", "rap", "rapwalk", "brick", "flex"],
@@ -658,6 +658,9 @@ function step(now) {
   }
 
   if (S.mode === "walk") {
+    // 이게 '걷는 속도' 그 자체입니다. 54px/초로 고정했습니다.
+    // 아래 쫓아가기 / 도망가기 / 수동 이동 속도는 전부 이 값의 배수라
+    // 여기를 고치면 그쪽도 같은 비율로 따라 움직입니다.
     S.x += S.dir * cfg.speed * dt;
     const pad = cfg.size * 0.45;
     const max = window.innerWidth - pad;
