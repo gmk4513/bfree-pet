@@ -55,7 +55,40 @@ const SPRITES = {
   bbrick11:    { src: "sprites/bbrick11.png", w: 386, h: 300, ch: 282 },
   bbrick12:    { src: "sprites/bbrick12.png", w: 386, h: 300, ch: 283 },
   bflex1:      { src: "sprites/bflex1.png", w: 220, h: 300, ch: 298 },
-  bflex2:      { src: "sprites/bflex2.png", w: 220, h: 300, ch: 298 }
+  bflex2:      { src: "sprites/bflex2.png", w: 220, h: 300, ch: 298 },
+
+  /* 적들 */
+  rwalk1:      { src: "sprites/rwalk1.png", w: 166, h: 300, ch: 297 },
+  rwalk2:      { src: "sprites/rwalk2.png", w: 166, h: 300, ch: 297 },
+  rwalk3:      { src: "sprites/rwalk3.png", w: 166, h: 300, ch: 297 },
+  rwalk4:      { src: "sprites/rwalk4.png", w: 166, h: 300, ch: 298 },
+  ratk1:       { src: "sprites/ratk1.png", w: 231, h: 300, ch: 298 },
+  ratk2:       { src: "sprites/ratk2.png", w: 231, h: 300, ch: 285 },
+  ratk3:       { src: "sprites/ratk3.png", w: 231, h: 300, ch: 297 },
+  ratk4:       { src: "sprites/ratk4.png", w: 231, h: 300, ch: 294 },
+  ratk5:       { src: "sprites/ratk5.png", w: 231, h: 300, ch: 287 },
+  ratk6:       { src: "sprites/ratk6.png", w: 231, h: 300, ch: 291 },
+  g1walk1:     { src: "sprites/g1walk1.png", w: 191, h: 300, ch: 285 },
+  g1walk2:     { src: "sprites/g1walk2.png", w: 191, h: 300, ch: 277 },
+  g1walk3:     { src: "sprites/g1walk3.png", w: 191, h: 300, ch: 277 },
+  g1walk4:     { src: "sprites/g1walk4.png", w: 191, h: 300, ch: 294 },
+  g1walk5:     { src: "sprites/g1walk5.png", w: 191, h: 300, ch: 290 },
+  g1walk6:     { src: "sprites/g1walk6.png", w: 191, h: 300, ch: 287 },
+  g1walk7:     { src: "sprites/g1walk7.png", w: 191, h: 300, ch: 283 },
+  g1walk8:     { src: "sprites/g1walk8.png", w: 191, h: 300, ch: 298 },
+  g2walk1:     { src: "sprites/g2walk1.png", w: 174, h: 300, ch: 269 },
+  g2walk2:     { src: "sprites/g2walk2.png", w: 174, h: 300, ch: 298 },
+  g2walk3:     { src: "sprites/g2walk3.png", w: 174, h: 300, ch: 285 },
+  g2walk4:     { src: "sprites/g2walk4.png", w: 174, h: 300, ch: 271 },
+  g2walk5:     { src: "sprites/g2walk5.png", w: 174, h: 300, ch: 297 },
+  g2walk6:     { src: "sprites/g2walk6.png", w: 174, h: 300, ch: 286 }
+};
+
+/* 적 종류. 할배는 아직 공격 그림이 없어서 걷기 중 큰 동작을 빌려 씁니다. */
+const ENEMIES = {
+  robot: { label: "로보트",     walk: ["rwalk1","rwalk2","rwalk3","rwalk4"], atk: ["ratk1","ratk2","ratk3"] },
+  g1:    { label: "60대 할배1", walk: ["g1walk1","g1walk2","g1walk3","g1walk4","g1walk5","g1walk6","g1walk7","g1walk8"], atk: ["g1walk4","g1walk8"] },
+  g2:    { label: "60대 할배2", walk: ["g2walk1","g2walk2","g2walk3","g2walk4","g2walk5","g2walk6"], atk: ["g2walk4","g2walk2"] }
 };
 
 /* 동작 그룹별로 '가장 큰 프레임'을 기준 삼아 배율을 정합니다.
@@ -152,6 +185,7 @@ let curKey = "bwalk1";
 const pet    = document.getElementById("pet");
 const sprite = document.getElementById("sprite");
 const bubble = document.getElementById("bubble");
+const hpBar  = document.getElementById("bHp");
 
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -218,6 +252,12 @@ function render(dt) {
 
   // 캐릭터 머리 위. 1.02 면 꼬리가 모자를 살짝 가립니다.
   bubble.style.bottom = (cfg.size * 1.16) + "px";
+
+  // 무적 바는 수동으로 직접 싸울 때만 띄웁니다. 평소엔 거슬립니다.
+  if (hpBar) {
+    hpBar.hidden = !S.manual;
+    hpBar.style.bottom = (cfg.size * 1.02) + "px";
+  }
 }
 
 /* ---------- 말풍선 ---------- */
@@ -308,6 +348,132 @@ if (tauri.on && window.__TAURI__.event) {
   window.__TAURI__.event.listen("cursor", (e) => {
     updateClickThrough(e.payload.x, e.payload.y);
   });
+
+  /* 트레이 메뉴. Rust 는 누른 항목의 id 만 보내고, 뜻은 여기서 풉니다.
+     동작을 추가할 때 Rust 를 안 고쳐도 되게 하려고 이렇게 나눴습니다. */
+  window.__TAURI__.event.listen("menu", (e) => {
+    const id = String(e.payload || "");
+    if (id.startsWith("spawn:")) { spawn(id.slice(6)); return; }
+    if (id.startsWith("pose:")) {
+      const want = id.slice(5);
+      if (S.manual) goAuto();
+      if (want === "flex") { S.mode = "flex2"; S.until = performance.now() + 3000; return; }
+      const q = POSES.find((x) => x.id === want);
+      if (q) {
+        S.pose = q; S.mode = "pose"; S.frame = 0;
+        S.until = performance.now() + q.ms;
+        S.sayIdx = 0; hush(); S.nextSay = performance.now() + 400;
+        draw(q.frames[0]);
+      }
+      return;
+    }
+    if (id === "mode:manual") { if (S.manual) goAuto(); else goManual(); }
+  });
+}
+
+/* ---------- 적 ----------
+   여러 마리를 동시에 띄울 수 있습니다. 소환할 때마다 하나씩 더 나옵니다.
+   그래서 전역 변수 하나가 아니라 배열이고, 각자 제 DOM 을 들고 있습니다. */
+const ES = [];
+
+function spawn(kind) {
+  const d = ENEMIES[kind];
+  if (!d) return;
+  const el = document.createElement("div");
+  el.className = "pet enemy";
+  el.innerHTML = '<div class="hp"><i style="width:100%"></i></div><img alt="">';
+  document.body.insertBefore(el, pet);     // 비프리보다 뒤에 섭니다
+  const side = Math.random() < 0.5 ? -1 : 1;
+  ES.push({
+    kind, def: d, el,
+    img: el.querySelector("img"),
+    bar: el.querySelector(".hp"),
+    fill: el.querySelector(".hp i"),
+    x: side > 0 ? window.innerWidth + 50 : -50,
+    hp: 4, maxHp: 4,
+    mode: "chase", until: 0, since: performance.now(),
+    kb: 0, fleeDir: side
+  });
+}
+
+function despawn(e) {
+  const i = ES.indexOf(e);
+  if (i >= 0) ES.splice(i, 1);
+  if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
+  if (!ES.length && !S.manual) { S.mode = "flex2"; S.until = performance.now() + 2600; }
+}
+
+function nearest() {
+  let best = null, bd = 1e9;
+  for (const e of ES) {
+    if (e.mode === "flee") continue;
+    const d = Math.abs(e.x - S.x);
+    if (d < bd) { bd = d; best = e; }
+  }
+  return best;
+}
+
+function drawInto(img, key, targetH, faceLeft) {
+  const sp = SPRITES[key];
+  if (!sp) return;
+  const scale = targetH / REF[GROUP_OF(key)];
+  const w = Math.round(sp.w * scale), h = Math.round(sp.h * scale);
+  if (img.getAttribute("src") !== sp.src) img.setAttribute("src", sp.src);
+  img.style.width = w + "px";
+  img.style.height = h + "px";
+  img.style.marginLeft = (-w / 2) + "px";
+  img.style.transform = "scaleX(" + (faceLeft ? -1 : 1) + ")";
+}
+
+function enemyTick(e, now, dt) {
+  const ed = e.def;
+  const wf = ed.walk[Math.floor(now / (1000 / WALK.fps)) % ed.walk.length];
+  const EH = cfg.enemySize || Math.round(cfg.size * 1.23);
+
+  // 맞고 밀려나는 중이면 그만큼 더 밀립니다. 금방 잦아듭니다.
+  if (e.kb) { e.x += e.kb * dt; e.kb *= 0.86; if (Math.abs(e.kb) < 6) e.kb = 0; }
+
+  if (e.mode === "flee") {
+    e.x += e.fleeDir * cfg.speed * 3.4 * dt;
+    drawInto(e.img, wf, EH, e.fleeDir < 0);
+    placeEnemy(e, EH);
+    if (e.x < -200 || e.x > window.innerWidth + 200 || now - e.since > 7000) despawn(e);
+    return;
+  }
+
+  const gap = e.x - S.x;
+  if (Math.abs(gap) > cfg.size * 1.0) {
+    e.x += (gap > 0 ? -1 : 1) * cfg.speed * 2.0 * dt;
+    drawInto(e.img, wf, EH, gap > 0);
+    e.until = now + 800;
+  } else {
+    drawInto(e.img, ed.atk[Math.min(ed.atk.length - 1, Math.floor((now % 900) / 300))], EH, gap > 0);
+    if (now >= e.until) e.until = now + 1100;   // 비프리는 무적이라 깎이지 않습니다
+  }
+  placeEnemy(e, EH);
+}
+
+function placeEnemy(e, EH) {
+  e.el.style.transform = "translateX(" + Math.round(e.x) + "px)";
+  e.bar.style.bottom = (EH * 1.02) + "px";
+  e.fill.style.width = Math.max(0, e.hp / e.maxHp * 100) + "%";
+}
+
+/* 비프리의 주먹 판정. 한 번 휘두를 때 한 번만, 닿는 거리에서만. */
+function swing(now) {
+  let landed = false;
+  for (const e of ES) {
+    if (e.mode === "flee") continue;
+    const gap = e.x - S.x;
+    const facing = gap > 0 ? 1 : -1;
+    if (Math.abs(gap) < cfg.size * 1.15 && facing === S.dir) {
+      e.hp -= 1;
+      e.kb = facing * cfg.size * 4.2;
+      landed = true;
+      if (e.hp <= 0) { e.mode = "flee"; e.fleeDir = facing; e.since = now; }
+    }
+  }
+  if (landed) play("hit");
 }
 
 /* ---------- 수동 조작 ----------
@@ -381,13 +547,44 @@ function step(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
 
+  // 적이 있으면 평소 동작 대신 싸운다 (자동일 때)
+  if (!S.manual && ES.length) {
+    const swinging0 = now < S.atkUntil;
+    const t = nearest();
+    if (t) {
+      const gap = t.x - S.x;
+      S.dir = gap > 0 ? 1 : -1;
+      if (Math.abs(gap) > cfg.size * 1.05) {
+        S.x += S.dir * cfg.speed * 1.6 * dt;
+        cycleFrames(now, WALK.frames, WALK.fps);
+      } else if (swinging0) {
+        draw(ATK[Math.min(ATK.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+      } else {
+        draw("batk2");
+        if (now >= S.atkUntil + 420) tryAttack();
+      }
+    } else {
+      draw("batk2");
+    }
+    const pd = cfg.size * 0.45;
+    if (S.x < pd) S.x = pd;
+    if (S.x > window.innerWidth - pd) S.x = window.innerWidth - pd;
+
+    if (swinging0 && !S.atkHitDone && now - S.atkFrom > 170) { S.atkHitDone = true; swing(now); }
+    for (let i = ES.length - 1; i >= 0; i--) enemyTick(ES[i], now, dt);
+    render(dt);
+    return;
+  }
+
   if (S.manual) {
     const swinging = now < S.atkUntil;
-    let mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
-    // 주먹을 뻗는 동안에는 방향도 걸음도 멈춥니다. 중간에 돌아서면
-    // 팔을 다 뻗기 전에 반대편을 보고 허공을 칩니다.
-    if (mv && !swinging) { S.dir = mv; S.x += mv * cfg.speed * 2.4 * dt; }
-    if (swinging) mv = 0;
+    const mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
+    // 주먹을 뻗는 동안에는 '방향만' 고정합니다. 걸음은 그대로 갑니다.
+    // 공중에서 치면서도 앞으로 날아갈 수 있어야 합니다.
+    if (mv) {
+      if (!swinging) S.dir = mv;
+      S.x += mv * cfg.speed * 2.4 * dt;
+    }
 
     // 누르고 있으면 끝나는 대로 다시 뛰고, 다시 칩니다
     if (S.keys.jump) tryJump();
@@ -411,6 +608,18 @@ function step(now) {
       cycleFrames(now, WALK.frames, WALK.fps);
     } else draw("batk1");
 
+    if (swinging && !S.atkHitDone && now - S.atkFrom > 170) { S.atkHitDone = true; swing(now); }
+    for (let i = ES.length - 1; i >= 0; i--) enemyTick(ES[i], now, dt);
+
+    render(dt);
+    return;
+  }
+
+  if (S.mode === "flex2") {
+    // 적을 다 쫓아낸 뒤 알통 한 번
+    const f = ["bflex1", "bflex2"];
+    draw(f[Math.floor(now / 450) % f.length]);
+    if (now >= S.until) { S.mode = "walk"; S.until = now + 4000; S.turnAt = now + 1500; }
     render(dt);
     return;
   }

@@ -59,6 +59,7 @@ html, body {
   border-radius: 7px;
   font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
   font-size: 13px;
+  font-weight: 700;
   line-height: 1.4;
   text-align: center;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
@@ -82,6 +83,38 @@ html, body {
 }
 
 .bubble.show { opacity: 1; }
+
+/* ---------- 머리 위 체력 막대 ---------- */
+
+.hp {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72px;
+  height: 14px;
+  border: 2px solid #15181A;
+  border-radius: 4px;
+  background: #FBFBF7;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.hp i { display: block; height: 100%; background: #D64B2F; transition: width 0.18s ease; }
+.hp span {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  color: #15181A;
+}
+
+/* 비프리 것은 깎이지 않으므로 색을 다르게 두고 조금 더 크게 */
+#bHp { width: 84px; height: 17px; }
+#bHp span { font-size: 11px; line-height: 17px; }
+#bHp i { background: #C9CFC4; }
 
 @media (prefers-reduced-motion: reduce) {
   .bubble { transition: none; }
