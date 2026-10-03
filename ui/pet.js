@@ -291,11 +291,20 @@ function enterWalk(now) {
   draw(WALK.frames[0]);
 }
 
+/* 그 자세의 대사가 한 바퀴 다 돌 때까지 자세를 유지합니다.
+   첫 대사가 0.4초 뒤에 뜨고 그 뒤로 bubbleGap 초마다 넘어가므로,
+   n 줄이면 0.4 + n*gap 초가 필요합니다. 끝을 자르지 않게 조금 더 둡니다.
+   전에는 ms 를 손으로 적어 둬서 벽돌쌓기(6줄)가 2~3줄만 나오고 끊겼습니다. */
+function poseDuration(q) {
+  if (!q.lines) return q.ms;          // 제 대사가 없는 자세는 원래 길이대로
+  return 400 + q.lines.length * cfg.bubbleGap * 1000 + 300;
+}
+
 function enterRest(now) {
   const on = POSES.filter((p) => cfg.poses.indexOf(p.id) >= 0);
   if (on.length && Math.random() < 0.78) {
     S.pose = pick(on); S.mode = "pose"; S.frame = 0;
-    S.until = now + S.pose.ms;
+    S.until = now + poseDuration(S.pose);
     draw(S.pose.frames[0]);
     S.sayIdx = 0; hush(); S.nextSay = now + 400;   // 자세가 바뀌면 그 자세의 첫 줄부터
   } else {
@@ -361,7 +370,7 @@ if (tauri.on && window.__TAURI__.event) {
       const q = POSES.find((x) => x.id === want);
       if (q) {
         S.pose = q; S.mode = "pose"; S.frame = 0;
-        S.until = performance.now() + q.ms;
+        S.until = performance.now() + poseDuration(q);
         S.sayIdx = 0; hush(); S.nextSay = performance.now() + 400;
         draw(q.frames[0]);
       }
