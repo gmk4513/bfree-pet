@@ -71,6 +71,7 @@ Object.keys(SPRITES).forEach((k) => {
 const BASE_W = 135;        // 눌리는 영역을 잡을 때 쓰는 그림 폭 (bwalk 기준)
 
 let WALK = { frames: ["bwalk1", "bwalk2", "bwalk3", "bwalk4"], fps: 4 };
+const ATK  = ["batk1", "batk2", "batk3", "batk4"];
 
 /* 동작과 그 동작에서 할 말을 한 곳에 묶습니다. 대사를 따로 두면
    "이 자세엔 무슨 말을 하지?" 를 코드 두 군데서 찾게 됩니다. */
@@ -78,6 +79,14 @@ const SAY_RAP = [
   "내 가사는 내가 사는 삶에서 나오는 시",
   "내 rap 핫뜨거 like 써머",
   "인도로 걸어 인도로 걸어"
+];
+const SAY_BRICK = [
+  "노가다보다 랩레슨이 낫지 않냐?",
+  "노가다가 훨씬 낫지 이사람아",
+  "그렇게 일하기가 싫냐?",
+  "아파트는 뭐 아파트가 짓는줄 아냐?",
+  "다 사람이 하는거야 임마",
+  "내가 여기있는 사람들 모두 일자리를 뺏어버릴거다!"
 ];
 const SAY_LIFT = [
   "건강하지, 젊지, 돈 벌며는 고마운거야~",
@@ -91,8 +100,7 @@ const POSES = [
   { id: "lift",    frames: ["blift1","blift2","blift3"],                        fps: 3, ms: 4500, lines: SAY_LIFT },
   { id: "rap",     frames: ["brap1","brap2","brap3"],                           fps: 3, ms: 4200, lines: SAY_RAP },
   { id: "rapwalk", frames: ["brapwalk1","brapwalk2","brapwalk3","brapwalk4"],   fps: 4, ms: 5000, lines: SAY_RAP, moves: true },
-  { id: "brick",   frames: ["bbrick1","bbrick2","bbrick3","bbrick4","bbrick5","bbrick6",
-                            "bbrick7","bbrick8","bbrick9","bbrick10","bbrick11","bbrick12"], fps: 3, ms: 4200 },
+  { id: "brick",   frames: ["bbrick4","bbrick5","bbrick6","bbrick7","bbrick8","bbrick9"], fps: 3, ms: 5200, lines: SAY_BRICK },
   { id: "flex",    frames: ["bflex1","bflex2"],                                 fps: 2, ms: 2600 }
 ];
 
@@ -109,7 +117,7 @@ const FALLBACK = {
    되어 아무 일도 하지 않습니다. 한 벌의 코드로 둘 다 돌리기 위한 장치입니다. */
 const tauri = (function () {
   const T = window.__TAURI__;
-  if (!T) return { on: false, setClickThrough() {}, quit() {} };
+  if (!T) return { on: false, setClickThrough() {}, quit() {}, focus() {} };
   const win = T.window.getCurrentWindow();
   return {
     on: true,
@@ -118,6 +126,10 @@ const tauri = (function () {
     },
     async quit() {
       try { await T.core.invoke("quit_app"); } catch (e) {}
+    },
+    async focus() {
+      // 키보드를 받으려면 창이 포커스를 가져야 합니다.
+      try { await win.setFocus(); } catch (e) {}
     }
   };
 })();
@@ -128,7 +140,9 @@ const S = {
   mode: "walk",          // walk | rest | pose | hit
   until: 0,
   pose: null, frame: 0,
-  nextSay: 0, sayUntil: 0, turnAt: 0,
+  nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0,
+  y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0,
+  keys: { left: false, right: false },
   clickThrough: true
 };
 
@@ -173,7 +187,8 @@ function draw(key) {
 }
 
 function render(dt) {
-  pet.style.transform = "translateX(" + Math.round(S.x) + "px)";
+  pet.style.transform =
+    "translateX(" + Math.round(S.x) + "px) translateY(" + Math.round(-S.y) + "px)";
 
   // 까딱임은 더 이상 쓰지 않습니다. 걷는 그림이 생겨서 흉내 낼 필요가 없고,
   // 그림의 걸음과 어긋나면 오히려 떨리는 것처럼 보입니다.
@@ -190,10 +205,14 @@ function linesNow() {
   if (S.mode === "pose" && S.pose && S.pose.lines) return S.pose.lines;
   return cfg.lines;
 }
+/* 대사는 무작위가 아니라 '순서대로' 돕니다. 무작위면 같은 말이 연달아
+   나오거나 어떤 말은 한참 안 나옵니다. */
 function say(text) {
-  bubble.textContent = text || pick(linesNow());
+  const L = linesNow();
+  bubble.textContent = text || L[S.sayIdx % L.length];
+  if (!text) S.sayIdx += 1;
   bubble.classList.add("show");
-  S.sayUntil = performance.now() + cfg.bubbleHold * 1000;
+  S.sayUntil = performance.now() + cfg.bubbleGap * 1000;   // 다음 말이 바로 이어집니다
 }
 function hush() {
   bubble.classList.remove("show");
@@ -215,7 +234,7 @@ function enterRest(now) {
     S.pose = pick(on); S.mode = "pose"; S.frame = 0;
     S.until = now + S.pose.ms;
     draw(S.pose.frames[0]);
-    hush(); S.nextSay = now + 500;     // 자세가 바뀌면 그 자세의 대사로 바로 갈아 끼웁니다
+    S.sayIdx = 0; hush(); S.nextSay = now + 400;   // 자세가 바뀌면 그 자세의 첫 줄부터
   } else {
     S.mode = "rest"; S.pose = null;
     S.until = now + cfg.restSec * 1000 * rand(0.7, 1.3);
@@ -268,6 +287,42 @@ if (tauri.on && window.__TAURI__.event) {
   });
 }
 
+/* ---------- 수동 조작 ----------
+   ← → 좌우,  Alt 점프,  Ctrl 공격.
+   점프는 제자리가 아니라 지금 가던 방향으로 그대로 날아갑니다.
+   공중에서는 bwalk3 한 장을 씁니다. 따로 점프 그림이 없습니다.
+
+   ★ 앱에서는 창이 포커스를 가져야 키가 들어옵니다. 이 창은 평소
+     포커스를 안 받게 돼 있어서(쓰던 창에서 포커스를 뺏지 않으려고),
+     캐릭터를 한 번 눌러야 조작이 시작됩니다. */
+const JUMP_V = 4.3;    // cfg.size 의 몇 배로 튀어오를지
+const GRAV   = 15;     // cfg.size 의 몇 배로 떨어질지
+
+function goManual() {
+  if (S.manual) return;
+  S.manual = true;
+  S.mode = "walk"; S.pose = null; hush();
+  tauri.focus();
+}
+function goAuto() {
+  S.manual = false;
+  S.keys.left = S.keys.right = false;
+  S.y = 0; S.vy = 0;
+  S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
+}
+function onKey(e, down) {
+  const k = e.key;
+  if (k === "ArrowLeft")       { S.keys.left = down;  if (down) goManual(); }
+  else if (k === "ArrowRight") { S.keys.right = down; if (down) goManual(); }
+  else if (k === "Alt")        { if (down && !e.repeat && S.y <= 0) { S.vy = cfg.size * JUMP_V; goManual(); } }
+  else if (k === "Control")    { if (down && !e.repeat) { S.atkUntil = performance.now() + 560; S.atkFrom = performance.now(); goManual(); } }
+  else if (k === "Escape")     { if (down) goAuto(); }
+  else return;
+  e.preventDefault();   // Alt 는 메뉴로, 방향키는 스크롤로 새어 나갑니다
+}
+window.addEventListener("keydown", (e) => onKey(e, true));
+window.addEventListener("keyup",   (e) => onKey(e, false));
+
 /* ---------- 고리 ---------- */
 
 let last = performance.now();
@@ -275,6 +330,31 @@ let last = performance.now();
 function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+
+  if (S.manual) {
+    const mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
+    if (mv) { S.dir = mv; S.x += mv * cfg.speed * 2.4 * dt; }
+
+    if (S.y > 0 || S.vy !== 0) {
+      S.vy -= cfg.size * GRAV * dt;
+      S.y  += S.vy * dt;
+      if (S.y <= 0) { S.y = 0; S.vy = 0; }
+    }
+    const mpad = cfg.size * 0.45;
+    if (S.x < mpad) S.x = mpad;
+    if (S.x > window.innerWidth - mpad) S.x = window.innerWidth - mpad;
+
+    if (S.y > 0) draw("bwalk3");
+    else if (now < S.atkUntil) {
+      draw(ATK[Math.min(ATK.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+    } else if (mv) {
+      cycleFrames(now, WALK.frames, WALK.fps);
+    } else draw("batk1");
+
+    render(dt);
+    requestAnimationFrame(tick);
+    return;
+  }
 
   if (S.mode === "walk") {
     S.x += S.dir * cfg.speed * dt;
@@ -301,7 +381,7 @@ function tick(now) {
   }
 
   if (S.sayUntil && now >= S.sayUntil) hush();
-  if (!S.sayUntil && now >= S.nextSay) {
+  if (!S.manual && !S.sayUntil && now >= S.nextSay) {
     say();
     S.nextSay = now + cfg.bubbleGap * 1000 * rand(0.8, 1.25);
   }
@@ -312,7 +392,7 @@ function tick(now) {
 
 /* ---------- 시작 ---------- */
 
-pet.addEventListener("click", () => enterHit(performance.now()));
+pet.addEventListener("click", () => { goManual(); say(); });
 
 // 오른쪽 버튼으로 종료. 트레이 메뉴가 붙기 전까지 유일한 탈출구입니다.
 pet.addEventListener("contextmenu", (e) => {

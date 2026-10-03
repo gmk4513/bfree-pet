@@ -3,8 +3,7 @@
   "speed": 38,
   "walkSec": 6,
   "restSec": 3.5,
-  "bubbleGap": 3,
-  "bubbleHold": 4,
+  "bubbleGap": 2,
   "floorOffset": 48,
   "poses": [
     "lift",
