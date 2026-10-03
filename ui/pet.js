@@ -96,6 +96,12 @@ const ENEMIES = {
   g2:    { label: "60대 할배2", walk: ["g2walk1","g2walk2","g2walk3","g2walk4","g2walk5","g2walk6"], atk: ["g2walk4","g2walk2"] }
 };
 
+/* 적이 움직이는 빠르기. 비프리 걷는 속도와 따로 둡니다.
+   예전에는 비프리 속도의 배수였는데, 그러면 비프리를 빠르게 하는 순간
+   적도 같이 달려들어서 다가오는 맛이 사라집니다.                        */
+const ENEMY_SPEED = 76;    // 다가오는 속도 (px/초)
+const ENEMY_FLEE  = 130;   // 피 다 깎이고 도망가는 속도 (px/초)
+
 /* 동작 그룹별로 '가장 큰 프레임'을 기준 삼아 배율을 정합니다.
    시트마다 AI 가 조금씩 다른 크기로 그려서, 그룹을 섞어 한 기준으로
    재면 동작이 바뀔 때 캐릭터가 커졌다 작아졌다 합니다. */
@@ -155,7 +161,7 @@ const POSES = [
 ];
 
 const FALLBACK = {
-  size: 104, speed: 54, walkSec: 6, restSec: 3.5,
+  size: 104, speed: 50, walkSec: 6, restSec: 3.5,
   bubbleGap: 3, bubbleHold: 4, walkScaleX: 1.17, walkScaleY: 1.00,
   floorOffset: 48,
   poses: ["lift", "rap", "rapwalk", "brick", "flex"],
@@ -463,7 +469,7 @@ function enemyTick(e, now, dt) {
   if (e.kb) { e.x += e.kb * dt; e.kb *= 0.86; if (Math.abs(e.kb) < 6) e.kb = 0; }
 
   if (e.mode === "flee") {
-    e.x += e.fleeDir * cfg.speed * 3.4 * dt;
+    e.x += e.fleeDir * ENEMY_FLEE * dt;
     drawInto(e.img, wf, EH, e.fleeDir < 0);
     placeEnemy(e, EH);
     if (e.x < -200 || e.x > window.innerWidth + 200 || now - e.since > 7000) despawn(e);
@@ -472,7 +478,7 @@ function enemyTick(e, now, dt) {
 
   const gap = e.x - S.x;
   if (Math.abs(gap) > cfg.size * 1.0) {
-    e.x += (gap > 0 ? -1 : 1) * cfg.speed * 2.0 * dt;
+    e.x += (gap > 0 ? -1 : 1) * ENEMY_SPEED * dt;
     drawInto(e.img, wf, EH, gap > 0);
     e.until = now + 800;
   } else {
@@ -658,9 +664,9 @@ function step(now) {
   }
 
   if (S.mode === "walk") {
-    // 이게 '걷는 속도' 그 자체입니다. 54px/초로 고정했습니다.
-    // 아래 쫓아가기 / 도망가기 / 수동 이동 속도는 전부 이 값의 배수라
-    // 여기를 고치면 그쪽도 같은 비율로 따라 움직입니다.
+    // 이게 '걷는 속도' 그 자체입니다. 50px/초로 고정했습니다.
+    // 비프리의 쫓아가기 / 수동 이동 속도는 이 값의 배수입니다.
+    // 적 속도는 따로입니다 — ENEMY_SPEED 를 보세요.
     S.x += S.dir * cfg.speed * dt;
     const pad = cfg.size * 0.45;
     const max = window.innerWidth - pad;
