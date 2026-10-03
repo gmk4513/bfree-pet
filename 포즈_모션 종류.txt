@@ -23,29 +23,11 @@
 60살 할배를 못이겨?
 
 
+걸음 빠르기 4장/초 로 고정.
+말하는 간격 3초마다로 고정.
 말풍선 -> 행동이랑 매칭
 싸우고나면 역기든 자세로 멈춤
 싸우고 나면 알통자랑하는 자세 보여준 다음에 다시 자연스럽게 걷기시작
 작업표시줄 위로 할건지, 겹치게 할건지 ( 캐릭터가 걸어다니는 바닥을)
 
-
 비프리의 정신을 본받아 열심히 삽시다
-
-
-  Use the attached image as the exact character reference.
-
-  Keep the SAME character: a short bald muscular man wearing a black
-  graduation cap with a gold tassel, a white tank top, black track pants
-  with a white side stripe, white sneakers, tattoos on both forearms,
-  eyes closed, same skin tone.
-
-  Style: pixel art with chunky pixels and dark outlines, limited palette.
-  NO anti-aliasing, NO gradients, NO blur, NO glow, NO soft shading.
-
-  Background: ONE flat solid magenta #FF00FF filling the whole frame.
-  No ground, no shadow, no scenery, no text, no border, no watermark.
-
-  Framing: full body, facing RIGHT, three-quarter side view.
-  The feet must touch the BOTTOM edge of the frame.
-  Draw the character at the SAME size as in the reference image
-  (the graduation cap must be the same width).

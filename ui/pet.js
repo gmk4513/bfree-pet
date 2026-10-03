@@ -67,7 +67,7 @@ const POSES = [
 
 const FALLBACK = {
   size: 104, speed: 38, walkSec: 6, restSec: 3.5,
-  bubbleGap: 3, bubbleHold: 4,
+  bubbleGap: 3, bubbleHold: 4, walkScale: 1.17,
   floorOffset: 48,
   poses: ["lift", "rap", "guard", "flex"],
   lines: ["아파트는 뭐 로보트가 짓는줄아냐?"]
@@ -119,9 +119,15 @@ function draw(key) {
   const s = SPRITES[key];
   if (!s) return;
   curKey = key;
-  // 그룹 안에서는 배율이 고정입니다. 프레임마다 s.ch 로 맞추면
-  // 다리를 벌린 프레임이 억지로 늘어나 머리와 몸이 굵어집니다.
-  const scale = cfg.size / REF[GROUP_OF(key)];
+  const g = GROUP_OF(key);
+  /* 그룹 안에서는 배율이 고정입니다. 프레임마다 s.ch 로 맞추면
+     다리를 벌린 프레임이 억지로 늘어나 머리와 몸이 굵어집니다.
+
+     걷기만 따로 키웁니다(walkScale). 걷기 그림은 완전한 옆모습이라
+     학사모가 좁아 보입니다(폭 112, 다른 자세는 132). 그대로 두면
+     걷다가 멈출 때 얼굴이 넓어진 것처럼 보입니다. */
+  const adj = (g === "bwalk") ? (cfg.walkScale || 1) : 1;
+  const scale = cfg.size / REF[g] * adj;
   const w = Math.round(s.w * scale);
   const h = Math.round(s.h * scale);
   if (sprite.getAttribute("src") !== s.src) sprite.setAttribute("src", s.src);
@@ -194,7 +200,7 @@ function cycleFrames(now, frames, fps) {
    바탕화면도, 아래에 있는 창도 못 누릅니다. 커서가 캐릭터 위에 왔을
    때에만 잠깐 받습니다. 커서 위치는 Rust 쪽에서 알려 줍니다. */
 function petRect() {
-  const w = BASE_W * (cfg.size / REF["bwalk"]);
+  const w = BASE_W * (cfg.size / REF["bwalk"]) * (cfg.walkScale || 1);
   return {
     left:   S.x - w / 2,
     right:  S.x + w / 2,
