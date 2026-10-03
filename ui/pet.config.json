@@ -5,9 +5,12 @@
   "restSec": 3.5,
   "bubbleGap": 26,
   "bubbleHold": 4,
-  "bob": true,
   "floorOffset": 48,
-  "poses": ["flex", "hammer", "work"],
+  "poses": [
+    "lift",
+    "rap",
+    "guard"
+  ],
   "lines": [
     "아파트는 뭐 로보트가 짓는줄아냐?",
     "니네가 왜 노인들보다 못해?",
@@ -16,5 +19,6 @@
     "건강하지, 젊지, 돈 벌며는 고마운거야~",
     "그게 그렇게 두려워 너네는?",
     "60살 할배를 못이겨?"
-  ]
+  ],
+  "walkFps": 8
 }

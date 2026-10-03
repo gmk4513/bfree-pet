@@ -10,48 +10,56 @@
 
 /* ---------- 스프라이트 ----------
    ★ 새 그림을 추가할 자리입니다.
-     1. ui/sprites/ 에 png 를 넣는다 (배경 투명, 발이 그림 맨 아래에 닿게)
-     2. 아래 SPRITES 에 한 줄 추가한다 (w, h 는 실제 픽셀 크기, k 는 아래 설명)
-     3. 걷기라면 WALK.frames 에, 멈춤 자세라면 POSES 에 넣는다
+     1. ui/sprites/ 에 PNG 를 넣는다 (배경 투명, 발이 그림 맨 아래에 닿게)
+     2. 아래 SPRITES 에 한 줄 추가한다
+     3. 걷기면 WALK.frames, 멈춤 자세면 POSES 에 넣는다
 
-   k = 그림 안에서 캐릭터가 얼마나 크게 그려졌는지. idle 을 1 로 둡니다.
-    게임 스프라이트는 장마다 캐릭터를 그린 크기가 다릅니다. 학사모 폭을
-    재 보면 idle 99px, 망치 192px 로 거의 두 배 차이가 납니다.
-    k 로 나눠 주지 않으면 망치를 들 때 캐릭터가 두 배로 커집니다.
-    새 그림을 넣을 때는 학사모 폭을 재서 99 로 나눈 값을 적으세요.
-    (tools/measure.py 가 재 줍니다)                                    */
+   w, h  파일의 실제 픽셀 크기
+   ch    그 안에서 '사람'이 차지하는 세로 길이 (여백 제외)
+         tools/cut_sheet.py 가 찍어 줍니다.
+
+   ★ ch 로 프레임마다 키를 맞추면 안 됩니다.
+     걸을 때 다리를 벌린 프레임은 키가 10% 낮아지는데, 그걸 억지로 같은
+     높이로 늘리면 머리와 몸이 그만큼 굵어집니다. 모자 폭이 화면에서
+     43 → 39 → 43 → 39 로 널뛰는 걸 실제로 보고 고쳤습니다.
+     그래서 아래 REF(가장 큰 프레임) 하나를 기준으로 배율을 고정합니다. */
 const SPRITES = {
-  idle:   { src: "sprites/idle.png",   w: 107, h: 204, k: 1.00 },
-  flex:   { src: "sprites/flex.png",   w: 231, h: 321, k: 1.49 },
-  fhuman: { src: "sprites/fhuman.png", w: 227, h: 279, k: 1.94 },
-  crawl2: { src: "sprites/crawl2.png", w: 293, h: 303, k: 1.74 },
-  hit:    { src: "sprites/hit.png",    w: 150, h: 203, k: 0.99 },
-  home1:  { src: "sprites/home1.png",  w: 247, h: 370, k: 1.75 },
-  home2:  { src: "sprites/home2.png",  w: 247, h: 370, k: 1.73 },
-  home3:  { src: "sprites/home3.png",  w: 247, h: 370, k: 1.75 }
+  bwalk1:     { src: "sprites/bwalk1.png",    w: 135, h: 300, ch: 273 },
+  bwalk2:     { src: "sprites/bwalk2.png",    w: 135, h: 300, ch: 300 },
+  bwalk3:     { src: "sprites/bwalk3.png",    w: 135, h: 300, ch: 272 },
+  bwalk4:     { src: "sprites/bwalk4.png",    w: 135, h: 300, ch: 297 },
+  batk1:      { src: "sprites/batk1.png",     w: 214, h: 300, ch: 290 },
+  batk2:      { src: "sprites/batk2.png",     w: 214, h: 300, ch: 296 },
+  batk3:      { src: "sprites/batk3.png",     w: 214, h: 300, ch: 298 },
+  batk4:      { src: "sprites/batk4.png",     w: 214, h: 300, ch: 298 },
+  blift1:     { src: "sprites/blift1.png",    w: 264, h: 300, ch: 292 },
+  blift2:     { src: "sprites/blift2.png",    w: 264, h: 300, ch: 293 },
+  blift3:     { src: "sprites/blift3.png",    w: 264, h: 300, ch: 298 },
+  brapwalk1:  { src: "sprites/brapwalk1.png", w: 187, h: 300, ch: 296 },
+  brapwalk2:  { src: "sprites/brapwalk2.png", w: 187, h: 300, ch: 298 },
+  brapwalk3:  { src: "sprites/brapwalk3.png", w: 187, h: 300, ch: 297 },
+  brapwalk4:  { src: "sprites/brapwalk4.png", w: 187, h: 300, ch: 297 }
 };
 
-const BASE_H = 204;        // idle 의 높이. 모든 배율의 기준
-const BASE_W = 107;        // 눌리는 영역을 잡을 때 쓴다
+// 비프리 그림 중 가장 큰 인물 높이. 모든 배율의 기준입니다.
+const REF_H = 300;
 
-/* 걷기.
-   지금은 걷는 그림이 없어서 idle 한 장을 위아래로 까딱이게 해 흉내 냅니다.
-   frames 에 두 장 이상 넣으면 그때부터 진짜 프레임 애니메이션으로 돕니다. */
-const WALK = { frames: ["idle"], fps: 6 };
+const BASE_W = 135;        // 눌리는 영역을 잡을 때 쓰는 그림 폭 (bwalk 기준)
+
+let WALK = { frames: ["bwalk1", "bwalk2", "bwalk3", "bwalk4"], fps: 8 };
 
 /* 멈췄을 때 하는 자세 */
 const POSES = [
-  { id: "flex",   frames: ["flex"],                    ms: 2200 },
-  { id: "hammer", frames: ["fhuman"],                  ms: 1600 },
-  { id: "work",   frames: ["home1", "home2", "home3"], ms: 3600, fps: 3 },
-  { id: "crawl",  frames: ["crawl2"],                  ms: 2000 }
+  { id: "lift",  frames: ["blift1", "blift2", "blift3"],                  ms: 4200, fps: 3 },
+  { id: "rap",   frames: ["brapwalk1", "brapwalk2", "brapwalk3", "brapwalk4"], ms: 4500, fps: 5 },
+  { id: "guard", frames: ["batk2", "batk3"],                              ms: 1800, fps: 3 }
 ];
 
 const FALLBACK = {
   size: 104, speed: 38, walkSec: 6, restSec: 3.5,
-  bubbleGap: 26, bubbleHold: 4, bob: true,
+  bubbleGap: 26, bubbleHold: 4,
   floorOffset: 48,
-  poses: ["flex", "hammer", "work"],
+  poses: ["lift", "rap", "guard"],
   lines: ["아파트는 뭐 로보트가 짓는줄아냐?"]
 };
 
@@ -80,12 +88,11 @@ const S = {
   until: 0,
   pose: null, frame: 0,
   nextSay: 0, sayUntil: 0,
-  bobT: 0,
   clickThrough: true
 };
 
 let cfg = Object.assign({}, FALLBACK);
-let curKey = "idle";
+let curKey = "bwalk1";
 
 const pet    = document.getElementById("pet");
 const sprite = document.getElementById("sprite");
@@ -102,8 +109,9 @@ function draw(key) {
   const s = SPRITES[key];
   if (!s) return;
   curKey = key;
-  // 자세가 바뀌어도 캐릭터 키가 같아야 합니다. s.k 로 나누는 게 그 일입니다.
-  const scale = (cfg.size / BASE_H) / (s.k || 1);
+  // 배율은 REF_H 하나로 고정합니다. 프레임마다 s.ch 로 맞추면
+  // 자세가 바뀔 때 머리와 몸이 커졌다 작아졌다 합니다.
+  const scale = cfg.size / REF_H;
   const w = Math.round(s.w * scale);
   const h = Math.round(s.h * scale);
   if (sprite.getAttribute("src") !== s.src) sprite.setAttribute("src", s.src);
@@ -115,15 +123,9 @@ function draw(key) {
 function render(dt) {
   pet.style.transform = "translateX(" + Math.round(S.x) + "px)";
 
-  let bobY = 0, squash = 1;
-  if (cfg.bob && !reduce && S.mode === "walk") {
-    S.bobT += dt * 7.5;
-    bobY = -Math.abs(Math.sin(S.bobT)) * (cfg.size * 0.045);
-    squash = 1 + Math.sin(S.bobT * 2) * 0.016;
-  }
-  sprite.style.transform =
-    "scaleX(" + (S.dir < 0 ? -1 : 1) + ") translateY(" + bobY.toFixed(2) +
-    "px) scaleY(" + squash.toFixed(3) + ")";
+  // 까딱임은 더 이상 쓰지 않습니다. 걷는 그림이 생겨서 흉내 낼 필요가 없고,
+  // 그림의 걸음과 어긋나면 오히려 떨리는 것처럼 보입니다.
+  sprite.style.transform = "scaleX(" + (S.dir < 0 ? -1 : 1) + ")";
 
   bubble.style.bottom = (cfg.size * 1.02) + "px";
 }
@@ -158,14 +160,15 @@ function enterRest(now) {
   } else {
     S.mode = "rest"; S.pose = null;
     S.until = now + cfg.restSec * 1000 * rand(0.7, 1.3);
-    draw("idle");
+    draw("batk1");
   }
 }
 
 function enterHit(now) {
+  // 맞는 그림이 아직 없어서 공격 자세로 대신합니다.
   S.mode = "hit"; S.pose = null;
   S.until = now + 1100;
-  draw("hit");
+  draw("batk3");
   say(pick(cfg.lines));
   S.nextSay = now + cfg.bubbleGap * 1000;
 }
@@ -181,7 +184,7 @@ function cycleFrames(now, frames, fps) {
    바탕화면도, 아래에 있는 창도 못 누릅니다. 커서가 캐릭터 위에 왔을
    때에만 잠깐 받습니다. 커서 위치는 Rust 쪽에서 알려 줍니다. */
 function petRect() {
-  const w = BASE_W * (cfg.size / BASE_H);
+  const w = BASE_W * (cfg.size / REF_H);
   return {
     left:   S.x - w / 2,
     right:  S.x + w / 2,
@@ -258,10 +261,11 @@ async function boot() {
   }
 
   document.documentElement.style.setProperty("--floor", cfg.floorOffset + "px");
+  if (cfg.walkFps) WALK.fps = cfg.walkFps;      // 설정에서 걸음 빠르기를 바꿀 수 있게
 
   Object.keys(SPRITES).forEach((k) => { new Image().src = SPRITES[k].src; });
 
-  draw("idle");
+  draw(WALK.frames[0]);
   S.x = Math.max(80, window.innerWidth * 0.3);
   S.nextSay = performance.now() + 2600;
   enterWalk(performance.now());
