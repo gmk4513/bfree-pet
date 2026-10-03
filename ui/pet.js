@@ -142,7 +142,7 @@ const S = {
   pose: null, frame: 0,
   nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0,
   y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0, atkHitDone: true,
-  keys: { left: false, right: false, jump: false },
+  keys: { left: false, right: false, jump: false, atk: false },
   clickThrough: true
 };
 
@@ -321,6 +321,14 @@ if (tauri.on && window.__TAURI__.event) {
 const JUMP_V = 4.3;    // cfg.size 의 몇 배로 튀어오를지
 const GRAV   = 15;     // cfg.size 의 몇 배로 떨어질지
 
+function tryAttack() {
+  const now = performance.now();
+  if (now < S.atkUntil) return;           // 휘두르는 중엔 또 못 칩니다
+  S.atkUntil = now + 560;
+  S.atkFrom = now;
+  S.atkHitDone = false;
+  play("attack");
+}
 function tryJump() {
   if (S.y > 0 || S.vy !== 0) return;      // 공중에서 또 못 뜁니다
   S.vy = cfg.size * JUMP_V;
@@ -335,7 +343,7 @@ function goManual() {
 }
 function goAuto() {
   S.manual = false;
-  S.keys.left = S.keys.right = S.keys.jump = false;
+  S.keys.left = S.keys.right = S.keys.jump = S.keys.atk = false;
   S.y = 0; S.vy = 0;
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
 }
@@ -346,15 +354,8 @@ function onKey(e, down) {
   // Alt 는 누르고 있는 동안 눌린 상태로 둡니다. 착지하는 순간 고리에서
   // 다시 뛰게 해서, 누르고 있으면 연속으로 뜁니다.
   else if (k === "Alt")        { S.keys.jump = down; if (down) { goManual(); tryJump(); } }
-  else if (k === "Control")    {
-    if (down && !e.repeat && performance.now() >= S.atkUntil) {
-      S.atkUntil = performance.now() + 560;
-      S.atkFrom = performance.now();
-      S.atkHitDone = false;
-      play("attack");
-      goManual();
-    }
-  }
+    // Alt 와 같은 방식. 누르고 있으면 한 번 끝날 때마다 다시 칩니다.
+  else if (k === "Control")    { S.keys.atk = down; if (down) { goManual(); tryAttack(); } }
   else if (k === "Escape")     { if (down) goAuto(); }
   else return;
   e.preventDefault();   // Alt 는 메뉴로, 방향키는 스크롤로 새어 나갑니다
@@ -366,7 +367,17 @@ window.addEventListener("keyup",   (e) => onKey(e, false));
 
 let last = performance.now();
 
+/* 한 프레임에서 오류가 나도 고리는 계속 돌게 합니다.
+   한 줄의 오류로 화면이 통째로 얼어붙는 일을 여러 번 겪었습니다.
+   멈추는 것보다 한 프레임 건너뛰는 쪽이 낫습니다. */
 function tick(now) {
+  try { step(now); } catch (err) {
+    if (!tick.warned) { tick.warned = true; console.error("한 프레임 건너뜀:", err); }
+  }
+  requestAnimationFrame(tick);
+}
+
+function step(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
 
@@ -378,7 +389,9 @@ function tick(now) {
     if (mv && !swinging) { S.dir = mv; S.x += mv * cfg.speed * 2.4 * dt; }
     if (swinging) mv = 0;
 
-    if (S.keys.jump) tryJump();         // 착지한 순간 바로 다시 뜁니다
+    // 누르고 있으면 끝나는 대로 다시 뛰고, 다시 칩니다
+    if (S.keys.jump) tryJump();
+    if (S.keys.atk) tryAttack();
 
     if (S.y > 0 || S.vy !== 0) {
       S.vy -= cfg.size * GRAV * dt;
@@ -389,15 +402,16 @@ function tick(now) {
     if (S.x < mpad) S.x = mpad;
     if (S.x > window.innerWidth - mpad) S.x = window.innerWidth - mpad;
 
-    if (S.y > 0) draw("bwalk3");
-    else if (now < S.atkUntil) {
+    if (swinging) {
+      // 공중이든 땅이든 주먹이 먼저입니다. 점프 중에도 그대로 뻗습니다.
       draw(ATK[Math.min(ATK.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+    } else if (S.y > 0) {
+      draw("bwalk3");
     } else if (mv) {
       cycleFrames(now, WALK.frames, WALK.fps);
     } else draw("batk1");
 
     render(dt);
-    requestAnimationFrame(tick);
     return;
   }
 
@@ -432,7 +446,6 @@ function tick(now) {
   }
 
   render(dt);
-  requestAnimationFrame(tick);
 }
 
 /* ---------- 시작 ---------- */
