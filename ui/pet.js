@@ -122,6 +122,14 @@ const SAY_RAP = [
   "내 rap 핫뜨거 like 써머",
   "인도로 걸어 인도로 걸어"
 ];
+/* 걸으면서 랩(프리스타일)은 서서 랩(공연)과 가사를 나눠 씁니다.
+   같은 가사를 두 자세에서 돌리면 금방 질립니다. */
+const SAY_FREE = [
+  "핫도그 하나 사먹으려는데",
+  "멤버쉽이 필요하다는 '코스트코'",
+  "처럼 속이 정말 '좁은놈'",
+  "이건 음악이 아닌 나만의 '독립운동'"
+];
 const SAY_BRICK = [
   "노가다보다 랩레슨이 낫지 않냐?",
   "노가다가 훨씬 낫지 이사람아",
@@ -141,7 +149,7 @@ const SAY_LIFT = [
 const POSES = [
   { id: "lift",    frames: ["blift1","blift2","blift3"],                        fps: 3, ms: 4500, lines: SAY_LIFT },
   { id: "rap",     frames: ["brap1","brap2","brap3"],                           fps: 3, ms: 4200, lines: SAY_RAP },
-  { id: "rapwalk", frames: ["brapwalk1","brapwalk2","brapwalk3","brapwalk4"],   fps: 4, ms: 5000, lines: SAY_RAP, moves: true },
+  { id: "rapwalk", frames: ["brapwalk1","brapwalk2","brapwalk3","brapwalk4"],   fps: 4, ms: 5000, lines: SAY_FREE, moves: true },
   { id: "brick",   frames: ["bbrick4","bbrick5","bbrick6","bbrick7","bbrick8","bbrick9"], fps: 3, ms: 5200, lines: SAY_BRICK },
   { id: "flex",    frames: ["bflex1","bflex2"],                                 fps: 2, ms: 2600 }
 ];
