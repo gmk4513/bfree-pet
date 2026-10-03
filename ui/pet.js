@@ -24,23 +24,38 @@
      43 → 39 → 43 → 39 로 널뛰는 걸 실제로 보고 고쳤습니다.
      그래서 아래 REF(가장 큰 프레임) 하나를 기준으로 배율을 고정합니다. */
 const SPRITES = {
-  bwalk1:     { src: "sprites/bwalk1.png",    w: 135, h: 300, ch: 273 },
-  bwalk2:     { src: "sprites/bwalk2.png",    w: 135, h: 300, ch: 300 },
-  bwalk3:     { src: "sprites/bwalk3.png",    w: 135, h: 300, ch: 272 },
-  bwalk4:     { src: "sprites/bwalk4.png",    w: 135, h: 300, ch: 297 },
-  batk1:      { src: "sprites/batk1.png",     w: 214, h: 300, ch: 290 },
-  batk2:      { src: "sprites/batk2.png",     w: 214, h: 300, ch: 296 },
-  batk3:      { src: "sprites/batk3.png",     w: 214, h: 300, ch: 298 },
-  batk4:      { src: "sprites/batk4.png",     w: 214, h: 300, ch: 298 },
-  blift1:     { src: "sprites/blift1.png",    w: 264, h: 300, ch: 292 },
-  blift2:     { src: "sprites/blift2.png",    w: 264, h: 300, ch: 293 },
-  blift3:     { src: "sprites/blift3.png",    w: 264, h: 300, ch: 298 },
-  brapwalk1:  { src: "sprites/brapwalk1.png", w: 187, h: 300, ch: 296 },
-  brapwalk2:  { src: "sprites/brapwalk2.png", w: 187, h: 300, ch: 298 },
-  brapwalk3:  { src: "sprites/brapwalk3.png", w: 187, h: 300, ch: 297 },
-  brapwalk4:  { src: "sprites/brapwalk4.png", w: 187, h: 300, ch: 297 },
-  bflex1:     { src: "sprites/bflex1.png",    w: 220, h: 300, ch: 298 },
-  bflex2:     { src: "sprites/bflex2.png",    w: 220, h: 300, ch: 298 }
+  bwalk1:      { src: "sprites/bwalk1.png", w: 135, h: 300, ch: 273 },
+  bwalk2:      { src: "sprites/bwalk2.png", w: 135, h: 300, ch: 300 },
+  bwalk3:      { src: "sprites/bwalk3.png", w: 135, h: 300, ch: 272 },
+  bwalk4:      { src: "sprites/bwalk4.png", w: 135, h: 300, ch: 297 },
+  batk1:       { src: "sprites/batk1.png", w: 214, h: 300, ch: 290 },
+  batk2:       { src: "sprites/batk2.png", w: 214, h: 300, ch: 296 },
+  batk3:       { src: "sprites/batk3.png", w: 214, h: 300, ch: 298 },
+  batk4:       { src: "sprites/batk4.png", w: 214, h: 300, ch: 298 },
+  blift1:      { src: "sprites/blift1.png", w: 264, h: 300, ch: 292 },
+  blift2:      { src: "sprites/blift2.png", w: 264, h: 300, ch: 293 },
+  blift3:      { src: "sprites/blift3.png", w: 264, h: 300, ch: 298 },
+  brapwalk1:   { src: "sprites/brapwalk1.png", w: 187, h: 300, ch: 296 },
+  brapwalk2:   { src: "sprites/brapwalk2.png", w: 187, h: 300, ch: 298 },
+  brapwalk3:   { src: "sprites/brapwalk3.png", w: 187, h: 300, ch: 297 },
+  brapwalk4:   { src: "sprites/brapwalk4.png", w: 187, h: 300, ch: 297 },
+  brap1:       { src: "sprites/brap1.png", w: 218, h: 300, ch: 297 },
+  brap2:       { src: "sprites/brap2.png", w: 218, h: 300, ch: 298 },
+  brap3:       { src: "sprites/brap3.png", w: 218, h: 300, ch: 295 },
+  bbrick1:     { src: "sprites/bbrick1.png", w: 386, h: 300, ch: 246 },
+  bbrick2:     { src: "sprites/bbrick2.png", w: 386, h: 300, ch: 242 },
+  bbrick3:     { src: "sprites/bbrick3.png", w: 386, h: 300, ch: 238 },
+  bbrick4:     { src: "sprites/bbrick4.png", w: 386, h: 300, ch: 209 },
+  bbrick5:     { src: "sprites/bbrick5.png", w: 386, h: 300, ch: 202 },
+  bbrick6:     { src: "sprites/bbrick6.png", w: 386, h: 300, ch: 242 },
+  bbrick7:     { src: "sprites/bbrick7.png", w: 386, h: 300, ch: 287 },
+  bbrick8:     { src: "sprites/bbrick8.png", w: 386, h: 300, ch: 297 },
+  bbrick9:     { src: "sprites/bbrick9.png", w: 386, h: 300, ch: 298 },
+  bbrick10:    { src: "sprites/bbrick10.png", w: 386, h: 300, ch: 290 },
+  bbrick11:    { src: "sprites/bbrick11.png", w: 386, h: 300, ch: 282 },
+  bbrick12:    { src: "sprites/bbrick12.png", w: 386, h: 300, ch: 283 },
+  bflex1:      { src: "sprites/bflex1.png", w: 220, h: 300, ch: 298 },
+  bflex2:      { src: "sprites/bflex2.png", w: 220, h: 300, ch: 298 }
 };
 
 /* 동작 그룹별로 '가장 큰 프레임'을 기준 삼아 배율을 정합니다.
@@ -55,21 +70,37 @@ Object.keys(SPRITES).forEach((k) => {
 
 const BASE_W = 135;        // 눌리는 영역을 잡을 때 쓰는 그림 폭 (bwalk 기준)
 
-let WALK = { frames: ["bwalk1", "bwalk2", "bwalk3", "bwalk4"], fps: 8 };
+let WALK = { frames: ["bwalk1", "bwalk2", "bwalk3", "bwalk4"], fps: 4 };
 
-/* 멈췄을 때 하는 자세 */
+/* 동작과 그 동작에서 할 말을 한 곳에 묶습니다. 대사를 따로 두면
+   "이 자세엔 무슨 말을 하지?" 를 코드 두 군데서 찾게 됩니다. */
+const SAY_RAP = [
+  "내 가사는 내가 사는 삶에서 나오는 시",
+  "내 rap 핫뜨거 like 써머",
+  "인도로 걸어 인도로 걸어"
+];
+const SAY_LIFT = [
+  "건강하지, 젊지, 돈 벌며는 고마운거야~",
+  "그렇게 일하기가 싫으냐?"
+];
+
+/* 멈췄을 때 돌아가며 하는 동작.
+   lines 를 적으면 그 동작일 때는 이 대사만 합니다.
+   안 적으면 pet.config.json 의 lines(기본 7개)를 씁니다. */
 const POSES = [
-  { id: "lift",  frames: ["blift1", "blift2", "blift3"],                  ms: 4200, fps: 3 },
-  { id: "rap",   frames: ["brapwalk1", "brapwalk2", "brapwalk3", "brapwalk4"], ms: 4500, fps: 5 },
-  { id: "guard", frames: ["batk2", "batk3"],                              ms: 1800, fps: 3 },
-  { id: "flex",  frames: ["bflex1", "bflex2"],                            ms: 2600, fps: 2 }
+  { id: "lift",    frames: ["blift1","blift2","blift3"],                        fps: 3, ms: 4500, lines: SAY_LIFT },
+  { id: "rap",     frames: ["brap1","brap2","brap3"],                           fps: 3, ms: 4200, lines: SAY_RAP },
+  { id: "rapwalk", frames: ["brapwalk1","brapwalk2","brapwalk3","brapwalk4"],   fps: 4, ms: 5000, lines: SAY_RAP, moves: true },
+  { id: "brick",   frames: ["bbrick1","bbrick2","bbrick3","bbrick4","bbrick5","bbrick6",
+                            "bbrick7","bbrick8","bbrick9","bbrick10","bbrick11","bbrick12"], fps: 3, ms: 4200 },
+  { id: "flex",    frames: ["bflex1","bflex2"],                                 fps: 2, ms: 2600 }
 ];
 
 const FALLBACK = {
   size: 104, speed: 38, walkSec: 6, restSec: 3.5,
   bubbleGap: 3, bubbleHold: 4, walkScaleX: 1.17, walkScaleY: 1.00,
   floorOffset: 48,
-  poses: ["lift", "rap", "guard", "flex"],
+  poses: ["lift", "rap", "rapwalk", "brick", "flex"],
   lines: ["아파트는 뭐 로보트가 짓는줄아냐?"]
 };
 
@@ -97,7 +128,7 @@ const S = {
   mode: "walk",          // walk | rest | pose | hit
   until: 0,
   pose: null, frame: 0,
-  nextSay: 0, sayUntil: 0,
+  nextSay: 0, sayUntil: 0, turnAt: 0,
   clickThrough: true
 };
 
@@ -148,14 +179,19 @@ function render(dt) {
   // 그림의 걸음과 어긋나면 오히려 떨리는 것처럼 보입니다.
   sprite.style.transform = "scaleX(" + (S.dir < 0 ? -1 : 1) + ")";
 
-  bubble.style.bottom = (cfg.size * 1.02) + "px";
+  // 캐릭터 머리 위. 1.02 면 꼬리가 모자를 살짝 가립니다.
+  bubble.style.bottom = (cfg.size * 1.16) + "px";
 }
 
 /* ---------- 말풍선 ---------- */
 
+function linesNow() {
+  // 지금 하고 있는 동작의 대사. 없으면 설정의 기본 대사.
+  if (S.mode === "pose" && S.pose && S.pose.lines) return S.pose.lines;
+  return cfg.lines;
+}
 function say(text) {
-  if (!text) return;
-  bubble.textContent = text;
+  bubble.textContent = text || pick(linesNow());
   bubble.classList.add("show");
   S.sayUntil = performance.now() + cfg.bubbleHold * 1000;
 }
@@ -169,6 +205,7 @@ function hush() {
 function enterWalk(now) {
   S.mode = "walk"; S.pose = null;
   S.until = now + cfg.walkSec * 1000 * rand(0.7, 1.3);
+  S.turnAt = now + rand(1200, 4000);
   draw(WALK.frames[0]);
 }
 
@@ -178,6 +215,7 @@ function enterRest(now) {
     S.pose = pick(on); S.mode = "pose"; S.frame = 0;
     S.until = now + S.pose.ms;
     draw(S.pose.frames[0]);
+    hush(); S.nextSay = now + 500;     // 자세가 바뀌면 그 자세의 대사로 바로 갈아 끼웁니다
   } else {
     S.mode = "rest"; S.pose = null;
     S.until = now + cfg.restSec * 1000 * rand(0.7, 1.3);
@@ -190,7 +228,7 @@ function enterHit(now) {
   S.mode = "hit"; S.pose = null;
   S.until = now + 1100;
   draw("batk3");
-  say(pick(cfg.lines));
+  say();
   S.nextSay = now + cfg.bubbleGap * 1000;
 }
 
@@ -242,12 +280,21 @@ function tick(now) {
     S.x += S.dir * cfg.speed * dt;
     const pad = cfg.size * 0.45;
     const max = window.innerWidth - pad;
-    if (S.x < pad) { S.x = pad; S.dir = 1; }
-    if (S.x > max) { S.x = max; S.dir = -1; }
+    // 벽에 닿으면 돌아서고, 그 전에도 가끔 제 마음대로 방향을 바꿉니다.
+    // 끝까지 갔다가 되돌아오기만 하면 왕복 기계처럼 보입니다.
+    if (S.x < pad) { S.x = pad; S.dir = 1; S.turnAt = now + rand(1200, 4000); }
+    if (S.x > max) { S.x = max; S.dir = -1; S.turnAt = now + rand(1200, 4000); }
+    if (now >= S.turnAt) {
+      if (Math.random() < 0.55) S.dir = -S.dir;
+      S.turnAt = now + rand(1200, 4000);
+    }
     cycleFrames(now, WALK.frames, WALK.fps);
   }
 
-  if (S.mode === "pose" && S.pose) cycleFrames(now, S.pose.frames, S.pose.fps);
+  if (S.mode === "pose" && S.pose) {
+    cycleFrames(now, S.pose.frames, S.pose.fps);
+    if (S.pose.moves) S.x += S.dir * cfg.speed * 0.5 * dt;   // 걸으면서 랩
+  }
 
   if (now >= S.until) {
     if (S.mode === "walk") enterRest(now); else enterWalk(now);
@@ -255,7 +302,7 @@ function tick(now) {
 
   if (S.sayUntil && now >= S.sayUntil) hush();
   if (!S.sayUntil && now >= S.nextSay) {
-    say(pick(cfg.lines));
+    say();
     S.nextSay = now + cfg.bubbleGap * 1000 * rand(0.8, 1.25);
   }
 

@@ -9,7 +9,8 @@
   "poses": [
     "lift",
     "rap",
-    "guard",
+    "rapwalk",
+    "brick",
     "flex"
   ],
   "lines": [

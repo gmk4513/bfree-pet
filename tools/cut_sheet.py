@@ -115,6 +115,23 @@ def find_figures(im, min_h, min_area):
     return figs, lab
 
 
+def head_center(sub):
+    """학사모 가로 중심. 소품(벽돌 더미 같은 것)이 늘어나도 안 움직입니다.
+
+    벽돌쌓기처럼 옆에 물건이 쌓이는 동작은 전체 덩어리의 중심으로 맞추면
+    캐릭터가 28px 씩 좌우로 흔들립니다. 그때 이 기준을 씁니다.
+    """
+    a = sub.astype(int)
+    al, r, g, b = a[..., 3], a[..., 0], a[..., 1], a[..., 2]
+    dark = (al > 120) & (r < 85) & (g < 85) & (b < 85)
+    ys = np.nonzero((al > 40).any(axis=1))[0]
+    if not len(ys):
+        return sub.shape[1] / 2
+    band = dark[ys.min(): ys.min() + max(1, int((ys.max() - ys.min()) * 0.30))]
+    cols = np.nonzero(band.any(axis=0))[0]
+    return (cols.min() + cols.max()) / 2 if len(cols) else sub.shape[1] / 2
+
+
 def foot_center(mask):
     """발바닥 쪽 가로 중심. 팔을 뻗어도 흔들리지 않는 기준점입니다."""
     ys = np.nonzero(mask.any(axis=1))[0]
@@ -148,6 +165,8 @@ def main():
     ap.add_argument("--only", default="", help="쓸 프레임 번호. 예: 1,2,3,4")
     ap.add_argument("--flip", action="store_true", help="좌우를 뒤집어 저장합니다")
     ap.add_argument("--height", type=int, default=0, help="세로 몇 px 로 줄일지")
+    ap.add_argument("--anchor", choices=["foot", "head"], default="foot",
+                    help="가로 기준점. 소품이 늘어나는 동작은 head 를 쓰세요")
     ap.add_argument("--dry", action="store_true", help="저장하지 않고 찾은 것만 보여 줍니다")
     args = ap.parse_args()
 
@@ -180,10 +199,13 @@ def main():
         cuts.append(sub)
 
     # 공통 캔버스: 발바닥을 바닥에, 발 중심을 가로 가운데에
+    def anchor_x(sub):
+        return head_center(sub) if args.anchor == "head" else foot_center(sub[..., 3] > 40)
+
     ws, hs, lefts, rights = [], [], [], []
     for sub in cuts:
         m = sub[..., 3] > 40
-        c = foot_center(m)
+        c = anchor_x(sub)
         xs = np.nonzero(m.any(axis=0))[0]
         lefts.append(c - xs.min())
         rights.append(xs.max() - c)
@@ -196,8 +218,7 @@ def main():
     names, out_imgs = [], []
     for i, sub in enumerate(cuts, start=1):
         canvas = np.zeros((CH, CW, 4), dtype=np.uint8)
-        m = sub[..., 3] > 40
-        c = int(round(foot_center(m)))
+        c = int(round(anchor_x(sub)))
         ox = anchor - c
         oy = CH - sub.shape[0] - 1
         canvas[oy:oy + sub.shape[0], ox:ox + sub.shape[1]] = sub
