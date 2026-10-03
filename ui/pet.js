@@ -288,6 +288,7 @@ function enterWalk(now) {
   S.mode = "walk"; S.pose = null;
   S.until = now + cfg.walkSec * 1000 * rand(0.7, 1.3);
   S.turnAt = now + rand(1200, 4000);
+  S.sayIdx = 0;                 // 걷기 대사도 첫 줄부터
   draw(WALK.frames[0]);
 }
 
@@ -297,7 +298,12 @@ function enterWalk(now) {
    전에는 ms 를 손으로 적어 둬서 벽돌쌓기(6줄)가 2~3줄만 나오고 끊겼습니다. */
 function poseDuration(q) {
   if (!q.lines) return q.ms;          // 제 대사가 없는 자세는 원래 길이대로
-  return 400 + q.lines.length * cfg.bubbleGap * 1000 + 300;
+  /* 대사는 0.4초 뒤 첫 줄, 그 뒤로 gap 마다 다음 줄이 뜹니다.
+     n 번째 줄이 뜨는 시각이 0.4 + (n-1)*gap 이고 그 줄이 gap 동안
+     떠 있으니, 딱 0.4 + n*gap 에서 끝내야 합니다.
+     여유를 더 주면 그 틈에 n+1 번째(= 첫 줄로 되감긴) 대사가 하나 더
+     뜹니다. 실제로 그렇게 한 개 더 나왔습니다. */
+  return 400 + q.lines.length * cfg.bubbleGap * 1000;
 }
 
 function enterRest(now) {
