@@ -9,22 +9,26 @@
    ===================================================================== */
 
 /* ---------- 스프라이트 ----------
-   idle(107x204)을 기준으로 삼고 나머지는 같은 배율로 키웁니다.
-   자세마다 높이를 따로 맞추면 자세가 바뀔 때 키가 들쭉날쭉해집니다.
-
    ★ 새 그림을 추가할 자리입니다.
      1. ui/sprites/ 에 png 를 넣는다 (배경 투명, 발이 그림 맨 아래에 닿게)
-     2. 아래 SPRITES 에 한 줄 추가한다 (w, h 는 실제 픽셀 크기)
-     3. 걷기라면 WALK.frames 에, 멈춤 자세라면 POSES 에 넣는다          */
+     2. 아래 SPRITES 에 한 줄 추가한다 (w, h 는 실제 픽셀 크기, k 는 아래 설명)
+     3. 걷기라면 WALK.frames 에, 멈춤 자세라면 POSES 에 넣는다
+
+   k = 그림 안에서 캐릭터가 얼마나 크게 그려졌는지. idle 을 1 로 둡니다.
+    게임 스프라이트는 장마다 캐릭터를 그린 크기가 다릅니다. 학사모 폭을
+    재 보면 idle 99px, 망치 192px 로 거의 두 배 차이가 납니다.
+    k 로 나눠 주지 않으면 망치를 들 때 캐릭터가 두 배로 커집니다.
+    새 그림을 넣을 때는 학사모 폭을 재서 99 로 나눈 값을 적으세요.
+    (tools/measure.py 가 재 줍니다)                                    */
 const SPRITES = {
-  idle:   { src: "sprites/idle.png",   w: 107, h: 204 },
-  flex:   { src: "sprites/flex.png",   w: 231, h: 321 },
-  fhuman: { src: "sprites/fhuman.png", w: 227, h: 279 },
-  crawl2: { src: "sprites/crawl2.png", w: 293, h: 303 },
-  hit:    { src: "sprites/hit.png",    w: 150, h: 203 },
-  home1:  { src: "sprites/home1.png",  w: 247, h: 370 },
-  home2:  { src: "sprites/home2.png",  w: 247, h: 370 },
-  home3:  { src: "sprites/home3.png",  w: 247, h: 370 }
+  idle:   { src: "sprites/idle.png",   w: 107, h: 204, k: 1.00 },
+  flex:   { src: "sprites/flex.png",   w: 231, h: 321, k: 1.49 },
+  fhuman: { src: "sprites/fhuman.png", w: 227, h: 279, k: 1.94 },
+  crawl2: { src: "sprites/crawl2.png", w: 293, h: 303, k: 1.74 },
+  hit:    { src: "sprites/hit.png",    w: 150, h: 203, k: 0.99 },
+  home1:  { src: "sprites/home1.png",  w: 247, h: 370, k: 1.75 },
+  home2:  { src: "sprites/home2.png",  w: 247, h: 370, k: 1.73 },
+  home3:  { src: "sprites/home3.png",  w: 247, h: 370, k: 1.75 }
 };
 
 const BASE_H = 204;        // idle 의 높이. 모든 배율의 기준
@@ -98,9 +102,10 @@ function draw(key) {
   const s = SPRITES[key];
   if (!s) return;
   curKey = key;
-  const k = cfg.size / BASE_H;
-  const w = Math.round(s.w * k);
-  const h = Math.round(s.h * k);
+  // 자세가 바뀌어도 캐릭터 키가 같아야 합니다. s.k 로 나누는 게 그 일입니다.
+  const scale = (cfg.size / BASE_H) / (s.k || 1);
+  const w = Math.round(s.w * scale);
+  const h = Math.round(s.h * scale);
   if (sprite.getAttribute("src") !== s.src) sprite.setAttribute("src", s.src);
   sprite.style.width = w + "px";
   sprite.style.height = h + "px";
@@ -176,8 +181,7 @@ function cycleFrames(now, frames, fps) {
    바탕화면도, 아래에 있는 창도 못 누릅니다. 커서가 캐릭터 위에 왔을
    때에만 잠깐 받습니다. 커서 위치는 Rust 쪽에서 알려 줍니다. */
 function petRect() {
-  const k = cfg.size / BASE_H;
-  const w = BASE_W * k;
+  const w = BASE_W * (cfg.size / BASE_H);
   return {
     left:   S.x - w / 2,
     right:  S.x + w / 2,
