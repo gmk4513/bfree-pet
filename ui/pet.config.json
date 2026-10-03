@@ -3,13 +3,14 @@
   "speed": 38,
   "walkSec": 6,
   "restSec": 3.5,
-  "bubbleGap": 26,
+  "bubbleGap": 3,
   "bubbleHold": 4,
   "floorOffset": 48,
   "poses": [
     "lift",
     "rap",
-    "guard"
+    "guard",
+    "flex"
   ],
   "lines": [
     "아파트는 뭐 로보트가 짓는줄아냐?",
@@ -20,5 +21,5 @@
     "그게 그렇게 두려워 너네는?",
     "60살 할배를 못이겨?"
   ],
-  "walkFps": 8
+  "walkFps": 4
 }

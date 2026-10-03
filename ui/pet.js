@@ -38,11 +38,20 @@ const SPRITES = {
   brapwalk1:  { src: "sprites/brapwalk1.png", w: 187, h: 300, ch: 296 },
   brapwalk2:  { src: "sprites/brapwalk2.png", w: 187, h: 300, ch: 298 },
   brapwalk3:  { src: "sprites/brapwalk3.png", w: 187, h: 300, ch: 297 },
-  brapwalk4:  { src: "sprites/brapwalk4.png", w: 187, h: 300, ch: 297 }
+  brapwalk4:  { src: "sprites/brapwalk4.png", w: 187, h: 300, ch: 297 },
+  bflex1:     { src: "sprites/bflex1.png",    w: 220, h: 300, ch: 298 },
+  bflex2:     { src: "sprites/bflex2.png",    w: 220, h: 300, ch: 298 }
 };
 
-// 비프리 그림 중 가장 큰 인물 높이. 모든 배율의 기준입니다.
-const REF_H = 300;
+/* 동작 그룹별로 '가장 큰 프레임'을 기준 삼아 배율을 정합니다.
+   시트마다 AI 가 조금씩 다른 크기로 그려서, 그룹을 섞어 한 기준으로
+   재면 동작이 바뀔 때 캐릭터가 커졌다 작아졌다 합니다. */
+const GROUP_OF = (key) => key.replace(/\d+$/, "");
+const REF = {};
+Object.keys(SPRITES).forEach((k) => {
+  const g = GROUP_OF(k);
+  REF[g] = Math.max(REF[g] || 0, SPRITES[k].ch);
+});
 
 const BASE_W = 135;        // 눌리는 영역을 잡을 때 쓰는 그림 폭 (bwalk 기준)
 
@@ -52,14 +61,15 @@ let WALK = { frames: ["bwalk1", "bwalk2", "bwalk3", "bwalk4"], fps: 8 };
 const POSES = [
   { id: "lift",  frames: ["blift1", "blift2", "blift3"],                  ms: 4200, fps: 3 },
   { id: "rap",   frames: ["brapwalk1", "brapwalk2", "brapwalk3", "brapwalk4"], ms: 4500, fps: 5 },
-  { id: "guard", frames: ["batk2", "batk3"],                              ms: 1800, fps: 3 }
+  { id: "guard", frames: ["batk2", "batk3"],                              ms: 1800, fps: 3 },
+  { id: "flex",  frames: ["bflex1", "bflex2"],                            ms: 2600, fps: 2 }
 ];
 
 const FALLBACK = {
   size: 104, speed: 38, walkSec: 6, restSec: 3.5,
-  bubbleGap: 26, bubbleHold: 4,
+  bubbleGap: 3, bubbleHold: 4,
   floorOffset: 48,
-  poses: ["lift", "rap", "guard"],
+  poses: ["lift", "rap", "guard", "flex"],
   lines: ["아파트는 뭐 로보트가 짓는줄아냐?"]
 };
 
@@ -109,9 +119,9 @@ function draw(key) {
   const s = SPRITES[key];
   if (!s) return;
   curKey = key;
-  // 배율은 REF_H 하나로 고정합니다. 프레임마다 s.ch 로 맞추면
-  // 자세가 바뀔 때 머리와 몸이 커졌다 작아졌다 합니다.
-  const scale = cfg.size / REF_H;
+  // 그룹 안에서는 배율이 고정입니다. 프레임마다 s.ch 로 맞추면
+  // 다리를 벌린 프레임이 억지로 늘어나 머리와 몸이 굵어집니다.
+  const scale = cfg.size / REF[GROUP_OF(key)];
   const w = Math.round(s.w * scale);
   const h = Math.round(s.h * scale);
   if (sprite.getAttribute("src") !== s.src) sprite.setAttribute("src", s.src);
@@ -184,7 +194,7 @@ function cycleFrames(now, frames, fps) {
    바탕화면도, 아래에 있는 창도 못 누릅니다. 커서가 캐릭터 위에 왔을
    때에만 잠깐 받습니다. 커서 위치는 Rust 쪽에서 알려 줍니다. */
 function petRect() {
-  const w = BASE_W * (cfg.size / REF_H);
+  const w = BASE_W * (cfg.size / REF["bwalk"]);
   return {
     left:   S.x - w / 2,
     right:  S.x + w / 2,

@@ -59,6 +59,13 @@ def strip_background(im, tol=26, passes=4):
             break
         bg = np.median(cols, axis=0)
 
+        # ★ 어두운 색은 배경으로 보지 않는다.
+        #   이 시트들의 배경은 항상 밝은 회색이다. 그런데 그림자나 흙을
+        #   지우고 나면 다음 바퀴에서 '검정'이 테두리 색으로 잡혀, 학사모와
+        #   검은 바지까지 지워 버린다. 실제로 벽돌쌓기 시트에서 겪었다.
+        if bg.mean() < 150:
+            break
+
         near = live & (np.abs(rgb - bg).max(axis=2) <= tol)
         lab, n = ndimage.label(near)
         if n == 0:
