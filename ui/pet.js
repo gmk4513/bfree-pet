@@ -32,8 +32,11 @@ const SPRITES = {
   batk2:       { src: "sprites/batk2.png", w: 214, h: 300, ch: 296 },
   batk3:       { src: "sprites/batk3.png", w: 214, h: 300, ch: 298 },
   batk4:       { src: "sprites/batk4.png", w: 214, h: 300, ch: 298 },
-  batk5:       { src: "sprites/batk5.png", w: 213, h: 300, ch: 298 },
-  batk6:       { src: "sprites/batk6.png", w: 251, h: 300, ch: 300 },
+  /* sx = 가로만 줄이는 보정. 이 두 장은 다른 그림에서 따 와서, 키는 같은데
+     몸이 더 넓게 그려져 있습니다(모자 50 vs 46, 어깨 35 vs 31).
+     세로까지 줄이면 오른손 칠 때만 키가 작아집니다. 가로만 92% 로 맞춥니다. */
+  batk5:       { src: "sprites/batk5.png", w: 213, h: 300, ch: 298, sx: 0.92 },
+  batk6:       { src: "sprites/batk6.png", w: 251, h: 300, ch: 300, sx: 0.92 },
   blift1:      { src: "sprites/blift1.png", w: 264, h: 300, ch: 292 },
   blift2:      { src: "sprites/blift2.png", w: 264, h: 300, ch: 293 },
   blift3:      { src: "sprites/blift3.png", w: 264, h: 300, ch: 298 },
@@ -237,7 +240,7 @@ function draw(key) {
      ★ 가로만 늘립니다. 가로세로를 같이 늘리면 걸을 때 키까지 커져서
        다른 자세보다 커 보입니다. 가로만 늘리면 키는 그대로 두고
        얼굴만 키울 수 있습니다. 다리를 늘릴 필요가 없습니다. */
-  const ax = (g === "bwalk") ? (cfg.walkScaleX || 1) : 1;
+  const ax = ((g === "bwalk") ? (cfg.walkScaleX || 1) : 1) * (s.sx || 1);
   const ay = (g === "bwalk") ? (cfg.walkScaleY || 1) : 1;
   const scale = cfg.size / REF[g];
   const w = Math.round(s.w * scale * ax);
@@ -441,7 +444,7 @@ function drawInto(img, key, targetH, faceLeft) {
   const sp = SPRITES[key];
   if (!sp) return;
   const scale = targetH / REF[GROUP_OF(key)];
-  const w = Math.round(sp.w * scale), h = Math.round(sp.h * scale);
+  const w = Math.round(sp.w * scale * (sp.sx || 1)), h = Math.round(sp.h * scale);
   if (img.getAttribute("src") !== sp.src) img.setAttribute("src", sp.src);
   img.style.width = w + "px";
   img.style.height = h + "px";
