@@ -173,7 +173,7 @@ const S = {
   mode: "walk",          // walk | rest | pose | hit
   until: 0,
   pose: null, frame: 0,
-  nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0,
+  nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0, poseIdx: 0,
   y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0, atkHitDone: true,
   keys: { left: false, right: false, jump: false, atk: false },
   clickThrough: true
@@ -303,7 +303,10 @@ function poseDuration(q) {
 function enterRest(now) {
   const on = POSES.filter((p) => cfg.poses.indexOf(p.id) >= 0);
   if (on.length && Math.random() < 0.78) {
-    S.pose = pick(on); S.mode = "pose"; S.frame = 0;
+    // 무작위로 고르면 같은 자세가 연달아 나오거나 어떤 자세는 한참 안
+    // 나옵니다. POSES 에 적힌 순서 그대로 돕니다.
+    S.pose = on[S.poseIdx % on.length]; S.poseIdx += 1;
+    S.mode = "pose"; S.frame = 0;
     S.until = now + poseDuration(S.pose);
     draw(S.pose.frames[0]);
     S.sayIdx = 0; hush(); S.nextSay = now + 400;   // 자세가 바뀌면 그 자세의 첫 줄부터
