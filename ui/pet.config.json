@@ -22,5 +22,6 @@
     "60살 할배를 못이겨?"
   ],
   "walkFps": 4,
-  "walkScale": 1.17
+  "walkScaleX": 1.17,
+  "walkScaleY": 1.0
 }
