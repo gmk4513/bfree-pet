@@ -141,7 +141,7 @@ const S = {
   until: 0,
   pose: null, frame: 0,
   nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0,
-  y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0,
+  y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0, atkHitDone: true,
   keys: { left: false, right: false, jump: false },
   clickThrough: true
 };
@@ -156,6 +156,28 @@ const bubble = document.getElementById("bubble");
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const rand = (a, b) => a + Math.random() * (b - a);
+
+/* 소리. 받은 파일은 같은 효과음이 1초 간격으로 여러 번 녹음돼 있어서
+   tools/cut_sound.py 로 첫 한 방만 잘라 썼습니다.
+   cloneNode 로 매번 새로 만듭니다. 같은 Audio 를 다시 play 하면 앞
+   소리가 끊겨서, 연속 점프에서 바로 티가 납니다.
+   play() 는 Promise 를 돌려주므로 try/catch 로는 거부를 못 잡습니다. */
+const SND = {};
+["jump", "attack", "hit"].forEach((k) => {
+  const a = new Audio("sound/" + k + ".wav");
+  a.preload = "auto";
+  SND[k] = a;
+});
+function play(k) {
+  const a = SND[k];
+  if (!a) return;
+  try {
+    const c = a.cloneNode();
+    c.volume = 0.55;
+    const r = c.play();
+    if (r && r.catch) r.catch(() => {});
+  } catch (e) {}
+}
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 /* ---------- 그리기 ---------- */
@@ -302,6 +324,7 @@ const GRAV   = 15;     // cfg.size 의 몇 배로 떨어질지
 function tryJump() {
   if (S.y > 0 || S.vy !== 0) return;      // 공중에서 또 못 뜁니다
   S.vy = cfg.size * JUMP_V;
+  play("jump");
 }
 function goManual() {
   if (S.manual) return;
@@ -323,7 +346,15 @@ function onKey(e, down) {
   // Alt 는 누르고 있는 동안 눌린 상태로 둡니다. 착지하는 순간 고리에서
   // 다시 뛰게 해서, 누르고 있으면 연속으로 뜁니다.
   else if (k === "Alt")        { S.keys.jump = down; if (down) { goManual(); tryJump(); } }
-  else if (k === "Control")    { if (down && !e.repeat) { S.atkUntil = performance.now() + 560; S.atkFrom = performance.now(); goManual(); } }
+  else if (k === "Control")    {
+    if (down && !e.repeat && performance.now() >= S.atkUntil) {
+      S.atkUntil = performance.now() + 560;
+      S.atkFrom = performance.now();
+      S.atkHitDone = false;
+      play("attack");
+      goManual();
+    }
+  }
   else if (k === "Escape")     { if (down) goAuto(); }
   else return;
   e.preventDefault();   // Alt 는 메뉴로, 방향키는 스크롤로 새어 나갑니다
@@ -340,8 +371,12 @@ function tick(now) {
   last = now;
 
   if (S.manual) {
-    const mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
-    if (mv) { S.dir = mv; S.x += mv * cfg.speed * 2.4 * dt; }
+    const swinging = now < S.atkUntil;
+    let mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
+    // 주먹을 뻗는 동안에는 방향도 걸음도 멈춥니다. 중간에 돌아서면
+    // 팔을 다 뻗기 전에 반대편을 보고 허공을 칩니다.
+    if (mv && !swinging) { S.dir = mv; S.x += mv * cfg.speed * 2.4 * dt; }
+    if (swinging) mv = 0;
 
     if (S.keys.jump) tryJump();         // 착지한 순간 바로 다시 뜁니다
 
