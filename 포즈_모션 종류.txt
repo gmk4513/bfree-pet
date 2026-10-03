@@ -1,18 +1,37 @@
 로보트가 때리면 맞는 동작
 로보트랑 서로 싸우는 동작
-걷는동작
+걷는동작 ㅇ
 
 멈추면-> 포즈
 ->
-역기 올렸다내렸다
-알통자랑 
-망치휘두르기
+역기 올렸다내렸다 ㅇ
+알통자랑 ㅇ
+망치휘두르기 
 벽돌쌓기
-마이크들고 랩하는 자세
+마이크들고 랩하는 자세 ㅇ
 
-로보트 소환 기능
+로보트 소환 기능 ㅇ
 60대 할배 소환 기능
 
 작업표시줄 위로 할건지, 겹치게 할건지 ( 캐릭터가 걸어다니는 바닥을)
 
 개발은 뭐 로보트가 하는줄 아냐? 제가 합니다(커피값 1900원 후원부탁드립니다)
+
+
+  Use the attached image as the exact character reference.
+
+  Keep the SAME character: a short bald muscular man wearing a black
+  graduation cap with a gold tassel, a white tank top, black track pants
+  with a white side stripe, white sneakers, tattoos on both forearms,
+  eyes closed, same skin tone.
+
+  Style: pixel art with chunky pixels and dark outlines, limited palette.
+  NO anti-aliasing, NO gradients, NO blur, NO glow, NO soft shading.
+
+  Background: ONE flat solid magenta #FF00FF filling the whole frame.
+  No ground, no shadow, no scenery, no text, no border, no watermark.
+
+  Framing: full body, facing RIGHT, three-quarter side view.
+  The feet must touch the BOTTOM edge of the frame.
+  Draw the character at the SAME size as in the reference image
+  (the graduation cap must be the same width).
