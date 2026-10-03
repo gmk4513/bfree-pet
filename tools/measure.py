@@ -5,6 +5,10 @@ import sys
 import numpy as np
 from PIL import Image
 
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+
+
 IDLE_CAP = 99.0          # idle.png 의 학사모 폭. 모든 비교의 기준
 
 def cap_width(path):
