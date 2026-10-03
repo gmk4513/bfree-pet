@@ -142,7 +142,7 @@ const S = {
   pose: null, frame: 0,
   nextSay: 0, sayUntil: 0, turnAt: 0, sayIdx: 0,
   y: 0, vy: 0, manual: false, atkUntil: 0, atkFrom: 0,
-  keys: { left: false, right: false },
+  keys: { left: false, right: false, jump: false },
   clickThrough: true
 };
 
@@ -201,8 +201,9 @@ function render(dt) {
 /* ---------- 말풍선 ---------- */
 
 function linesNow() {
-  // 지금 하고 있는 동작의 대사. 없으면 설정의 기본 대사.
-  if (S.mode === "pose" && S.pose && S.pose.lines) return S.pose.lines;
+  // 지금 하고 있는 동작의 대사. 자세가 아니거나(걷기·수동 조작)
+  // 그 자세에 대사가 없으면 설정의 기본 대사.
+  if (!S.manual && S.mode === "pose" && S.pose && S.pose.lines) return S.pose.lines;
   return cfg.lines;
 }
 /* 대사는 무작위가 아니라 '순서대로' 돕니다. 무작위면 같은 말이 연달아
@@ -298,15 +299,20 @@ if (tauri.on && window.__TAURI__.event) {
 const JUMP_V = 4.3;    // cfg.size 의 몇 배로 튀어오를지
 const GRAV   = 15;     // cfg.size 의 몇 배로 떨어질지
 
+function tryJump() {
+  if (S.y > 0 || S.vy !== 0) return;      // 공중에서 또 못 뜁니다
+  S.vy = cfg.size * JUMP_V;
+}
 function goManual() {
   if (S.manual) return;
   S.manual = true;
-  S.mode = "walk"; S.pose = null; hush();
+  S.mode = "walk"; S.pose = null; S.sayIdx = 0; hush();
+  S.nextSay = performance.now() + 400;
   tauri.focus();
 }
 function goAuto() {
   S.manual = false;
-  S.keys.left = S.keys.right = false;
+  S.keys.left = S.keys.right = S.keys.jump = false;
   S.y = 0; S.vy = 0;
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
 }
@@ -314,7 +320,9 @@ function onKey(e, down) {
   const k = e.key;
   if (k === "ArrowLeft")       { S.keys.left = down;  if (down) goManual(); }
   else if (k === "ArrowRight") { S.keys.right = down; if (down) goManual(); }
-  else if (k === "Alt")        { if (down && !e.repeat && S.y <= 0) { S.vy = cfg.size * JUMP_V; goManual(); } }
+  // Alt 는 누르고 있는 동안 눌린 상태로 둡니다. 착지하는 순간 고리에서
+  // 다시 뛰게 해서, 누르고 있으면 연속으로 뜁니다.
+  else if (k === "Alt")        { S.keys.jump = down; if (down) { goManual(); tryJump(); } }
   else if (k === "Control")    { if (down && !e.repeat) { S.atkUntil = performance.now() + 560; S.atkFrom = performance.now(); goManual(); } }
   else if (k === "Escape")     { if (down) goAuto(); }
   else return;
@@ -334,6 +342,8 @@ function tick(now) {
   if (S.manual) {
     const mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
     if (mv) { S.dir = mv; S.x += mv * cfg.speed * 2.4 * dt; }
+
+    if (S.keys.jump) tryJump();         // 착지한 순간 바로 다시 뜁니다
 
     if (S.y > 0 || S.vy !== 0) {
       S.vy -= cfg.size * GRAV * dt;
@@ -381,7 +391,7 @@ function tick(now) {
   }
 
   if (S.sayUntil && now >= S.sayUntil) hush();
-  if (!S.manual && !S.sayUntil && now >= S.nextSay) {
+  if (!S.sayUntil && now >= S.nextSay) {
     say();
     S.nextSay = now + cfg.bubbleGap * 1000 * rand(0.8, 1.25);
   }
