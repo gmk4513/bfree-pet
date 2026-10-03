@@ -194,7 +194,6 @@ let curKey = "bwalk1";
 const pet    = document.getElementById("pet");
 const sprite = document.getElementById("sprite");
 const bubble = document.getElementById("bubble");
-const hpBar  = document.getElementById("bHp");
 
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -262,11 +261,6 @@ function render(dt) {
   // 캐릭터 머리 위. 1.02 면 꼬리가 모자를 살짝 가립니다.
   bubble.style.bottom = (cfg.size * 1.16) + "px";
 
-  // 무적 바는 수동으로 직접 싸울 때만 띄웁니다. 평소엔 거슬립니다.
-  if (hpBar) {
-    hpBar.hidden = !S.manual;
-    hpBar.style.bottom = (cfg.size * 1.02) + "px";
-  }
 }
 
 /* ---------- 말풍선 ---------- */

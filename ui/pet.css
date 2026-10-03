@@ -100,21 +100,7 @@ html, body {
   pointer-events: none;
 }
 .hp i { display: block; height: 100%; background: #D64B2F; transition: width 0.18s ease; }
-.hp span {
-  position: absolute;
-  inset: 0;
-  text-align: center;
-  font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-  color: #15181A;
-}
 
-/* 비프리 것은 깎이지 않으므로 색을 다르게 두고 조금 더 크게 */
-#bHp { width: 84px; height: 17px; }
-#bHp span { font-size: 11px; line-height: 17px; }
-#bHp i { background: #C9CFC4; }
 
 @media (prefers-reduced-motion: reduce) {
   .bubble { transition: none; }
