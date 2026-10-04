@@ -220,6 +220,8 @@ let curKey = "bwalk1";
 const pet    = document.getElementById("pet");
 const sprite = document.getElementById("sprite");
 const bubble = document.getElementById("bubble");
+const panel   = document.getElementById("panel");
+const modeBtn = document.getElementById("modeBtn");
 
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -322,6 +324,16 @@ function linesNow() {
 }
 /* 대사는 무작위가 아니라 '순서대로' 돕니다. 무작위면 같은 말이 연달아
    나오거나 어떤 말은 한참 안 나옵니다. */
+/* 말풍선은 걷든 싸우든 수동으로 조작하든 똑같이 돕니다.
+   예전에는 이 처리가 step() 맨 끝에 있었는데, 수동 분기와 싸움 분기가
+   그 앞에서 먼저 return 해 버려서 그 두 경우에만 조용했습니다. */
+function sayTick(now) {
+  if (S.sayUntil && now >= S.sayUntil) hush();
+  if (!S.sayUntil && now >= S.nextSay) {
+    say();
+    S.nextSay = now + cfg.bubbleGap * 1000 * rand(0.8, 1.25);
+  }
+}
 function say(text) {
   const L = linesNow();
   bubble.textContent = text || L[S.sayIdx % L.length];
@@ -404,15 +416,78 @@ function petRect() {
   };
 }
 
+function inRect(r, x, y) {
+  return r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+/* 창은 화면 전체를 덮는 투명한 판입니다. 평소에는 클릭을 통과시켜야
+   바탕화면도 다른 창도 쓸 수 있습니다. 통과를 끄는 경우는 둘입니다.
+
+   1) 커서가 캐릭터나 조작판 위에 있을 때 — 그걸 눌러야 하니까요.
+   2) 수동 조작 중일 때 — 화면 전체를 받습니다. 그래야 옆의 다른
+      프로그램을 눌러 포커스를 넘겨주는 일이 없습니다. 키를 캐릭터가
+      온전히 먹어야 한다는 게 수동 조작의 뜻입니다.
+      빠져나오는 길은 조작판의 '수동 조작' 버튼과 Esc 입니다. */
 function updateClickThrough(cx, cy) {
-  const r = petRect();
-  const over = cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
-  const want = !over;
+  let want;
+  if (S.manual) {
+    want = false;                       // 수동이면 화면 전체를 받습니다
+  } else {
+    const onPet = inRect(petRect(), cx, cy);
+    const onPanel = !panel.hidden && inRect(panel.getBoundingClientRect(), cx, cy);
+    want = !(onPet || onPanel);
+  }
   if (want !== S.clickThrough) {
     S.clickThrough = want;
     tauri.setClickThrough(want);
   }
 }
+
+/* ---------- 조작판 ----------
+   트레이 메뉴와 같은 일을 하지만 창 안에 있습니다. 한 번 누르고 닫히지
+   않아서 적을 연달아 부를 수 있고, 누르는 동안 포커스를 안 놓칩니다. */
+
+function showPanel(on) {
+  panel.hidden = !on;
+  // 조작판이 사라지거나 나타나면 눌릴 자리가 바뀝니다. 커서가 그 위에
+  // 있던 참이면 다음 커서 신호가 올 때까지 통과 상태가 어긋납니다.
+  S.clickThrough = null;
+}
+
+function syncPanel() {
+  modeBtn.setAttribute("aria-pressed", S.manual ? "true" : "false");
+  modeBtn.textContent = S.manual ? "수동 조작 끄기" : "수동 조작";
+}
+
+function doSpawn(kind) { spawn(kind); }
+
+function doPose(want) {
+  if (S.manual) goAuto();
+  if (want === "flex") { S.mode = "flex2"; S.until = performance.now() + 3000; return; }
+  const q = POSES.find((x) => x.id === want);
+  if (!q) return;
+  S.pose = q; S.mode = "pose"; S.frame = 0;
+  S.until = performance.now() + poseDuration(q);
+  S.sayIdx = 0; hush(); S.nextSay = performance.now() + 400;
+  draw(q.frames[0]);
+}
+
+function toggleManual() {
+  if (S.manual) goAuto();
+  else { showPanel(true); goManual(); }   // 켤 때는 끌 버튼이 보여야 합니다
+}
+
+panel.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.spawn) { doSpawn(b.dataset.spawn); return; }
+  if (b.dataset.pose)  { doPose(b.dataset.pose); return; }
+  if (b.id === "modeBtn")   { toggleManual(); return; }
+  if (b.id === "panelHide") { showPanel(false); return; }
+  if (b.id === "quitBtn")   { tauri.quit(); return; }
+});
+syncPanel();
+showPanel(true);
 
 if (tauri.on && window.__TAURI__.event) {
   window.__TAURI__.event.listen("cursor", (e) => {
@@ -430,21 +505,10 @@ if (tauri.on && window.__TAURI__.event) {
     // 골랐으면 더 참을 이유가 없습니다
     focusGraceUntil = performance.now() + 300;
     const id = String(e.payload || "");
-    if (id.startsWith("spawn:")) { spawn(id.slice(6)); return; }
-    if (id.startsWith("pose:")) {
-      const want = id.slice(5);
-      if (S.manual) goAuto();
-      if (want === "flex") { S.mode = "flex2"; S.until = performance.now() + 3000; return; }
-      const q = POSES.find((x) => x.id === want);
-      if (q) {
-        S.pose = q; S.mode = "pose"; S.frame = 0;
-        S.until = performance.now() + poseDuration(q);
-        S.sayIdx = 0; hush(); S.nextSay = performance.now() + 400;
-        draw(q.frames[0]);
-      }
-      return;
-    }
-    if (id === "mode:manual") { if (S.manual) goAuto(); else goManual(); }
+    if (id.startsWith("spawn:")) { doSpawn(id.slice(6)); return; }
+    if (id.startsWith("pose:"))  { doPose(id.slice(5)); return; }
+    if (id === "panel:toggle")   { showPanel(panel.hidden); return; }
+    if (id === "mode:manual")    { toggleManual(); return; }
   });
 }
 
@@ -585,6 +649,7 @@ function goManual() {
   S.mode = "walk"; S.pose = null; S.sayIdx = 0; hush();
   S.nextSay = performance.now() + 400;
   tauri.setManual(true);     // 포커스를 받을 수 있게 열고 가져옵니다
+  syncPanel();
 }
 function goAuto() {
   S.manual = false;
@@ -592,6 +657,7 @@ function goAuto() {
   S.keys.left = S.keys.right = S.keys.jump = S.keys.atk = false;
   S.y = 0; S.vy = 0;
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
+  syncPanel();
 }
 function onKey(e, down) {
   /* ★ 수동 조작일 때만 키를 받습니다.
@@ -682,6 +748,7 @@ function step(now) {
 
     if (swinging0 && !S.atkHitDone && now - S.atkFrom > 170) { S.atkHitDone = true; swing(now); }
     for (let i = ES.length - 1; i >= 0; i--) enemyTick(ES[i], now, dt);
+    sayTick(now);
     render(dt);
     return;
   }
@@ -722,6 +789,7 @@ function step(now) {
     if (swinging && !S.atkHitDone && now - S.atkFrom > 170) { S.atkHitDone = true; swing(now); }
     for (let i = ES.length - 1; i >= 0; i--) enemyTick(ES[i], now, dt);
 
+    sayTick(now);
     render(dt);
     return;
   }
@@ -762,12 +830,7 @@ function step(now) {
     if (S.mode === "walk") enterRest(now); else enterWalk(now);
   }
 
-  if (S.sayUntil && now >= S.sayUntil) hush();
-  if (!S.sayUntil && now >= S.nextSay) {
-    say();
-    S.nextSay = now + cfg.bubbleGap * 1000 * rand(0.8, 1.25);
-  }
-
+  sayTick(now);
   render(dt);
 }
 

@@ -8,10 +8,44 @@
 </head>
 <body>
 
-<!-- 창 전체가 투명합니다. 보이는 건 이 안의 캐릭터와 말풍선뿐입니다. -->
+<!-- 창 전체가 투명합니다. 보이는 건 이 안의 캐릭터와 말풍선, 조작판뿐입니다. -->
 <div class="pet" id="pet">
   <div class="bubble" id="bubble"></div>
   <img class="sprite" id="sprite" alt="비프리" draggable="false">
+</div>
+
+<!-- 조작판.
+     트레이 메뉴는 한 번 고르면 닫혀서, 적을 둘 이상 부르려면 매번 다시
+     열어야 했습니다. 트레이를 누르는 동안 창이 포커스를 놓치는 것도
+     문제였습니다. 그래서 버튼을 같은 창 안으로 들여왔습니다. -->
+<div class="panel" id="panel" hidden>
+  <div class="panel__bar">
+    <span class="panel__title">비프리</span>
+    <button type="button" class="panel__x" id="panelHide" title="숨기기 (트레이에서 다시 엽니다)">×</button>
+  </div>
+
+  <div class="panel__row">
+    <span class="panel__tag">소환</span>
+    <button type="button" data-spawn="robot">로보트</button>
+    <button type="button" data-spawn="g1">노인1</button>
+    <button type="button" data-spawn="g2">노인2</button>
+  </div>
+
+  <div class="panel__row">
+    <span class="panel__tag">포즈</span>
+    <button type="button" data-pose="lift">운동</button>
+    <button type="button" data-pose="rap">공연</button>
+    <button type="button" data-pose="rapwalk">프리스타일</button>
+    <button type="button" data-pose="brick">노가다</button>
+    <button type="button" data-pose="flex">근육 자랑</button>
+  </div>
+
+  <div class="panel__row">
+    <button type="button" class="panel__mode" id="modeBtn" aria-pressed="false">수동 조작</button>
+    <button type="button" class="panel__quit" id="quitBtn">끝내기</button>
+  </div>
+
+  <p class="panel__hint" id="panelHint">← → 이동 · Alt 점프 · Ctrl 공격 · Esc 자동 복귀</p>
 </div>
 
 <script src="pet.js"></script>

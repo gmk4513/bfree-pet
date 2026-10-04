@@ -104,3 +104,81 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .bubble { transition: none; }
 }
+
+/* ---------- 조작판 ----------
+   같은 창 안에 있습니다. 트레이 메뉴는 한 번 고르면 닫혀서 적을 둘
+   이상 부르기가 번거롭고, 누르는 동안 창이 포커스를 놓칩니다.
+   여기 버튼은 창 안이라 눌러도 포커스가 그대로 있습니다. */
+
+.panel {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 268px;
+  padding: 10px 12px 12px;
+  background: rgba(247, 247, 244, 0.97);
+  border: 1.5px solid #15181A;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  color: #1B1E21;
+  z-index: 10;
+}
+.panel[hidden] { display: none; }
+
+.panel__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+.panel__title { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.panel__x {
+  width: 22px; height: 22px; padding: 0;
+  border: 1px solid #C9CBC3; border-radius: 5px;
+  background: #FBFBF7; color: #555C61;
+  font-size: 14px; line-height: 1; cursor: pointer;
+}
+
+.panel__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+.panel__tag {
+  width: 30px;
+  font-size: 11px;
+  color: #666E74;
+}
+
+.panel button {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 9px;
+  border: 1px solid #C9CBC3;
+  border-radius: 6px;
+  background: #FBFBF7;
+  color: #1B1E21;
+  cursor: pointer;
+}
+.panel button:hover { border-color: #15181A; }
+.panel button:active { background: #E4E5DE; }
+
+/* 수동 조작은 켜진 게 한눈에 보여야 합니다. 켠 줄 모르고 다른 일을
+   하려다 화면이 안 눌리면 고장으로 보입니다. */
+.panel__mode { font-weight: 700; }
+.panel__mode[aria-pressed="true"] {
+  background: #C57F12;
+  border-color: #8A5600;
+  color: #FFF;
+}
+.panel__quit { margin-left: auto; color: #8A3A2A; }
+
+.panel__hint {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #666E74;
+}

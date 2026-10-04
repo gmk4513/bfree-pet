@@ -68,16 +68,10 @@ fn main() {
             let menu = Menu::with_items(
                 app,
                 &[
-                    &item("spawn:robot", "로보트 소환")?,
-                    &item("spawn:g1", "노인1 소환")?,
-                    &item("spawn:g2", "노인2 소환")?,
-                    &PredefinedMenuItem::separator(app)?,
-                    &item("pose:lift", "운동")?,
-                    &item("pose:rap", "공연")?,
-                    &item("pose:rapwalk", "프리스타일")?,
-                    &item("pose:brick", "노가다")?,
-                    &item("pose:flex", "근육 자랑")?,
-                    &PredefinedMenuItem::separator(app)?,
+                    // 소환과 포즈는 창 안 조작판으로 옮겼습니다. 트레이 메뉴는
+                    // 한 번 고르면 닫혀서, 적을 둘 이상 부르려면 매번 다시
+                    // 열어야 했습니다. 여기는 조작판을 여닫는 길만 둡니다.
+                    &item("panel:toggle", "조작판 보이기 / 숨기기")?,
                     &item("mode:manual", "수동 조작 켜기 / 끄기")?,
                     &PredefinedMenuItem::separator(app)?,
                     &item("app:quit", "끝내기")?,
