@@ -81,7 +81,7 @@ fn main() {
             let handle = app.handle().clone();
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("비프리 데스크톱 펫")
+                .tooltip("학사모 비프리 데스크톱 펫")
                 .menu(&menu)
                 .show_menu_on_left_click(true)
                 // 트레이를 눌러 메뉴가 열렸다고 화면에 알립니다. 수동일 때
