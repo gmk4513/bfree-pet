@@ -161,7 +161,7 @@ const POSES = [
 ];
 
 const FALLBACK = {
-  size: 104, speed: 50, walkSec: 6, restSec: 3.5,
+  size: 104, speed: 50, walkSec: 6, restSec: 3.5, edgeMargin: 150,
   bubbleGap: 3, bubbleHold: 4, walkScaleX: 1.17, walkScaleY: 1.00,
   floorOffset: 48,
   poses: ["lift", "rap", "rapwalk", "brick", "flex"],
@@ -406,6 +406,14 @@ function cycleFrames(now, frames, fps) {
    창은 화면 전체를 덮고 있으므로 기본은 통과시킵니다. 그러지 않으면
    바탕화면도, 아래에 있는 창도 못 누릅니다. 커서가 캐릭터 위에 왔을
    때에만 잠깐 받습니다. 커서 위치는 Rust 쪽에서 알려 줍니다. */
+/* 자동일 때 캐릭터가 멈춰 설 수 있는 양 끝 여백입니다.
+   캐릭터 폭만 피하면 모자랍니다 — 말풍선이 캐릭터보다 훨씬 넓어서,
+   끝에서 포즈를 잡으면 대사가 화면 밖으로 잘립니다.
+   수동일 때는 쓰지 않습니다. 직접 모는 중이라 끝까지 갈 수 있어야 합니다. */
+function edgePad() {
+  return Math.max(cfg.size * 0.45, cfg.edgeMargin || 0);
+}
+
 function petRect() {
   const w = BASE_W * (cfg.size / REF["bwalk"]) * (cfg.walkScaleX || 1);
   return {
@@ -461,8 +469,10 @@ function syncPanel() {
 
 function doSpawn(kind) { spawn(kind); }
 
+/* 포즈를 고른다고 모드가 바뀌지는 않습니다. 자동 / 수동을 오가는 건
+   사용자가 그 버튼을 눌렀을 때뿐이어야 합니다. 수동 중에 포즈를 고르면
+   수동인 채로 포즈를 잡고, 조작키를 건드리는 순간 깨집니다. */
 function doPose(want) {
-  if (S.manual) goAuto();
   if (want === "flex") { S.mode = "flex2"; S.until = performance.now() + 3000; return; }
   const q = POSES.find((x) => x.id === want);
   if (!q) return;
@@ -476,6 +486,44 @@ function toggleManual() {
   if (S.manual) goAuto();
   else { showPanel(true); goManual(); }   // 켤 때는 끌 버튼이 보여야 합니다
 }
+
+/* 조작판 끌어 옮기기. 보통 창처럼 제목 줄을 잡고 끕니다.
+   처음엔 right 로 붙여 두었으니, 끌기 시작할 때 left 로 바꿔 잡습니다.
+   둘을 같이 두면 폭이 늘어나 버립니다. */
+(function dragPanel() {
+  const bar = document.getElementById("panelBar");
+  let from = null;
+
+  bar.addEventListener("pointerdown", (e) => {
+    if (e.target.closest("button")) return;      // 숨기기 / 끝내기는 버튼입니다
+    const r = panel.getBoundingClientRect();
+    panel.style.left = r.left + "px";
+    panel.style.top = r.top + "px";
+    panel.style.right = "auto";
+    from = { x: e.clientX, y: e.clientY, left: r.left, top: r.top };
+    bar.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+
+  bar.addEventListener("pointermove", (e) => {
+    if (!from) return;
+    const r = panel.getBoundingClientRect();
+    // 끌어서 화면 밖으로 내보내면 되돌릴 길이 없어집니다
+    const nx = Math.min(window.innerWidth - r.width, Math.max(0, from.left + e.clientX - from.x));
+    const ny = Math.min(window.innerHeight - r.height, Math.max(0, from.top + e.clientY - from.y));
+    panel.style.left = nx + "px";
+    panel.style.top = ny + "px";
+  });
+
+  const end = (e) => {
+    if (!from) return;
+    from = null;
+    try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
+    S.clickThrough = null;        // 눌릴 자리가 바뀌었습니다
+  };
+  bar.addEventListener("pointerup", end);
+  bar.addEventListener("pointercancel", end);
+})();
 
 panel.addEventListener("click", (e) => {
   const b = e.target.closest("button");
@@ -742,7 +790,7 @@ function step(now) {
     } else {
       draw("batk2");
     }
-    const pd = cfg.size * 0.45;
+    const pd = edgePad();
     if (S.x < pd) S.x = pd;
     if (S.x > window.innerWidth - pd) S.x = window.innerWidth - pd;
 
@@ -756,6 +804,32 @@ function step(now) {
   if (S.manual) {
     const swinging = now < S.atkUntil;
     const mv = (S.keys.right ? 1 : 0) - (S.keys.left ? 1 : 0);
+
+    /* 수동 중에 고른 포즈. 조작키를 건드리면 바로 깨고 조작으로 돌아갑니다.
+       포즈를 골랐다고 자동으로 넘어가지는 않습니다. */
+    if (S.mode === "pose" || S.mode === "flex2") {
+      const broke = mv || S.keys.jump || S.keys.atk || swinging || S.y > 0 || now >= S.until;
+      if (broke) {
+        S.mode = "walk"; S.pose = null;
+      } else {
+        if (S.mode === "flex2") {
+          const f = ["bflex1", "bflex2"];
+          draw(f[Math.floor(now / 450) % f.length]);
+        } else if (S.pose) {
+          cycleFrames(now, S.pose.frames, S.pose.fps);
+          if (S.pose.moves) {
+            S.x += S.dir * cfg.speed * 0.5 * dt;
+            const pp = edgePad();
+            if (S.x < pp) { S.x = pp; S.dir = 1; }
+            if (S.x > window.innerWidth - pp) { S.x = window.innerWidth - pp; S.dir = -1; }
+          }
+        }
+        for (let i = ES.length - 1; i >= 0; i--) enemyTick(ES[i], now, dt);
+        sayTick(now);
+        render(dt);
+        return;
+      }
+    }
     // 주먹을 뻗는 동안에는 '방향만' 고정합니다. 걸음은 그대로 갑니다.
     // 공중에서 치면서도 앞으로 날아갈 수 있어야 합니다.
     if (mv) {
@@ -808,7 +882,7 @@ function step(now) {
     // 비프리의 쫓아가기 / 수동 이동 속도는 이 값의 배수입니다.
     // 적 속도는 따로입니다 — ENEMY_SPEED 를 보세요.
     S.x += S.dir * cfg.speed * dt;
-    const pad = cfg.size * 0.45;
+    const pad = edgePad();
     const max = window.innerWidth - pad;
     // 벽에 닿으면 돌아서고, 그 전에도 가끔 제 마음대로 방향을 바꿉니다.
     // 끝까지 갔다가 되돌아오기만 하면 왕복 기계처럼 보입니다.
@@ -823,7 +897,13 @@ function step(now) {
 
   if (S.mode === "pose" && S.pose) {
     cycleFrames(now, S.pose.frames, S.pose.fps);
-    if (S.pose.moves) S.x += S.dir * cfg.speed * 0.5 * dt;   // 걸으면서 랩
+    if (S.pose.moves) {
+      // 걸으면서 랩. 울타리가 없어서 화면 밖까지 걸어 나가 대사가 잘렸습니다.
+      S.x += S.dir * cfg.speed * 0.5 * dt;
+      const pp = edgePad();
+      if (S.x < pp) { S.x = pp; S.dir = 1; }
+      if (S.x > window.innerWidth - pp) { S.x = window.innerWidth - pp; S.dir = -1; }
+    }
   }
 
   if (now >= S.until) {

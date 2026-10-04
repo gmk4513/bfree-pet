@@ -6,6 +6,7 @@
   "restSec": 3.5,
   "bubbleGap": 2,
   "floorOffset": 48,
+  "edgeMargin": 150,
   "poses": [
     "lift",
     "rap",

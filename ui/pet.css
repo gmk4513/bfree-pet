@@ -126,19 +126,31 @@ html, body {
 }
 .panel[hidden] { display: none; }
 
+/* 제목 줄은 손잡이입니다. 끌면 조작판이 따라옵니다. */
 .panel__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 9px;
+  margin: -10px -12px 9px;        /* 손잡이를 모서리까지 넓힙니다 */
+  padding: 7px 10px 7px 12px;
+  border-bottom: 1px solid #DEE0D8;
+  border-radius: 9px 9px 0 0;
+  background: #EFEFEA;
+  cursor: grab;
+  user-select: none;
 }
+.panel__bar:active { cursor: grabbing; }
 .panel__title { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
-.panel__x {
-  width: 22px; height: 22px; padding: 0;
+
+.panel__win { display: flex; gap: 4px; }
+.panel__btn {
+  width: 24px; height: 22px; padding: 0;
   border: 1px solid #C9CBC3; border-radius: 5px;
-  background: #FBFBF7; color: #555C61;
+  background: #FBFBF7; color: #3A4146;
   font-size: 14px; line-height: 1; cursor: pointer;
 }
+.panel__btn:hover { background: #E4E5DE; }
+.panel__btn--x:hover { background: #C8402A; border-color: #9B2E1D; color: #FFF; }
 
 .panel__row {
   display: flex;
@@ -174,7 +186,6 @@ html, body {
   border-color: #8A5600;
   color: #FFF;
 }
-.panel__quit { margin-left: auto; color: #8A3A2A; }
 
 .panel__hint {
   margin: 2px 0 0;
