@@ -154,7 +154,7 @@ const SAY_LIFT = [
    안 적으면 pet.config.json 의 lines(기본 7개)를 씁니다. */
 const POSES = [
   { id: "lift",    frames: ["blift1","blift2","blift3"],                        fps: 3, ms: 4500, lines: SAY_LIFT },
-  { id: "rap",     frames: ["brap1","brap2","brap3"],                           fps: 3, ms: 4200, lines: SAY_RAP },
+  { id: "rap",     frames: ["brap1","brap2","brap3"],                           fps: 3, ms: 4200, lines: SAY_RAP, moves: true },
   { id: "rapwalk", frames: ["brapwalk1","brapwalk2","brapwalk3","brapwalk4"],   fps: 4, ms: 5000, lines: SAY_FREE, moves: true },
   { id: "brick",   frames: ["bbrick4","bbrick5","bbrick6","bbrick7","bbrick8","bbrick9"], fps: 3, ms: 5200, lines: SAY_BRICK },
   { id: "flex",    frames: ["bflex1","bflex2"],                                 fps: 2, ms: 2600 }
