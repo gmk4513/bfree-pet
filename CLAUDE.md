@@ -155,6 +155,22 @@ python tools/cut_sheet.py "source-art/비프리_벽돌쌓기.png" bbrick --ancho
 
 ---
 
+### capabilities 가 없으면 트레이도 클릭 통과도 죽습니다
+
+Tauri 2 는 `src-tauri/capabilities/*.json` 에 적힌 권한만 화면에
+내줍니다. 이 파일이 없으면 화면에서 부르는 Tauri 호출이 **전부 조용히
+거부**됩니다. 오류 창도 안 뜹니다:
+
+| 안 되는 것 | 보이는 증상 |
+|---|---|
+| `event.listen("menu")` | 트레이 메뉴를 눌러도 아무 일도 안 일어남 |
+| `event.listen("cursor")` | 캐릭터를 눌러도 반응 없음 (창이 계속 클릭 통과) |
+| `setIgnoreCursorEvents` | 클릭 통과를 못 끔 |
+| `setFocus` | 키보드가 창에 안 들어옴 |
+
+`core:default` 에 창 setter 두 개를 더 적어 둡니다. 창 setter 는
+`core:window:default` 에 안 들어 있습니다 — getter 만 있습니다.
+
 ### 소리는 WebAudio 로만
 
 `new Audio("sound/x.wav")` 로 틀지 마세요. 이 wav 들은 `<audio>` 로 열면

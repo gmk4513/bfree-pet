@@ -1,5 +1,6 @@
 {
-  "size": 104,
+  "size": 128,
+  "enemySize": 128,
   "speed": 50,
   "walkSec": 6,
   "restSec": 3.5,

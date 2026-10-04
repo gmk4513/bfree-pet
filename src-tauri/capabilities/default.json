@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "펫 화면이 쓰는 권한. 이 파일이 없으면 화면에서 부르는 Tauri 호출이 전부 조용히 거부됩니다 — 트레이 메뉴도, 클릭 통과도, 포커스도 안 먹습니다.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-ignore-cursor-events",
+    "core:window:allow-set-focus"
+  ]
+}

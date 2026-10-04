@@ -574,14 +574,19 @@ function goAuto() {
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
 }
 function onKey(e, down) {
+  /* ★ 수동 조작일 때만 키를 받습니다.
+     자동일 때도 받으면, 다른 창에서 일하다 방향키나 Ctrl 을 누르는
+     순간 펫이 조작 모드로 바뀌어 버립니다. 켜는 건 트레이 메뉴로만. */
+  if (!S.manual) return;
+
   const k = e.key;
-  if (k === "ArrowLeft")       { S.keys.left = down;  if (down) goManual(); }
-  else if (k === "ArrowRight") { S.keys.right = down; if (down) goManual(); }
+  if (k === "ArrowLeft")       { S.keys.left = down; }
+  else if (k === "ArrowRight") { S.keys.right = down; }
   // Alt 는 누르고 있는 동안 눌린 상태로 둡니다. 착지하는 순간 고리에서
   // 다시 뛰게 해서, 누르고 있으면 연속으로 뜁니다.
-  else if (k === "Alt")        { S.keys.jump = down; if (down) { goManual(); tryJump(); } }
-    // Alt 와 같은 방식. 누르고 있으면 한 번 끝날 때마다 다시 칩니다.
-  else if (k === "Control")    { S.keys.atk = down; if (down) { goManual(); tryAttack(); } }
+  else if (k === "Alt")        { S.keys.jump = down; if (down) tryJump(); }
+  // Alt 와 같은 방식. 누르고 있으면 한 번 끝날 때마다 다시 칩니다.
+  else if (k === "Control")    { S.keys.atk = down; if (down) tryAttack(); }
   else if (k === "Escape")     { if (down) goAuto(); }
   else return;
   e.preventDefault();   // Alt 는 메뉴로, 방향키는 스크롤로 새어 나갑니다
@@ -731,7 +736,7 @@ function step(now) {
 
 /* ---------- 시작 ---------- */
 
-pet.addEventListener("click", () => { goManual(); say(); });
+pet.addEventListener("click", () => { say(); });   // 눌러도 수동으로 안 넘어갑니다
 
 // 오른쪽 버튼으로 종료. 트레이 메뉴가 붙기 전까지 유일한 탈출구입니다.
 pet.addEventListener("contextmenu", (e) => {
