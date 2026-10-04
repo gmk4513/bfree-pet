@@ -47,8 +47,8 @@ fn main() {
                 app,
                 &[
                     &item("spawn:robot", "로보트 소환")?,
-                    &item("spawn:g1", "60대 할배1 소환")?,
-                    &item("spawn:g2", "60대 할배2 소환")?,
+                    &item("spawn:g1", "노인1 소환")?,
+                    &item("spawn:g2", "노인2 소환")?,
                     &PredefinedMenuItem::separator(app)?,
                     &item("pose:lift", "운동")?,
                     &item("pose:rap", "공연")?,

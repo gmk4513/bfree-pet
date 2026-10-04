@@ -89,11 +89,11 @@ const SPRITES = {
   g2walk6:     { src: "sprites/g2walk6.png", w: 174, h: 300, ch: 286 }
 };
 
-/* 적 종류. 할배는 아직 공격 그림이 없어서 걷기 중 큰 동작을 빌려 씁니다. */
+/* 적 종류. 노인은 아직 공격 그림이 없어서 걷기 중 큰 동작을 빌려 씁니다. */
 const ENEMIES = {
   robot: { label: "로보트",     walk: ["rwalk1","rwalk2","rwalk3","rwalk4"], atk: ["ratk1","ratk2","ratk3"] },
-  g1:    { label: "60대 할배1", walk: ["g1walk1","g1walk2","g1walk3","g1walk4","g1walk5","g1walk6","g1walk7","g1walk8"], atk: ["g1walk4","g1walk8"] },
-  g2:    { label: "60대 할배2", walk: ["g2walk1","g2walk2","g2walk3","g2walk4","g2walk5","g2walk6"], atk: ["g2walk4","g2walk2"] }
+  g1:    { label: "노인1", walk: ["g1walk1","g1walk2","g1walk3","g1walk4","g1walk5","g1walk6","g1walk7","g1walk8"], atk: ["g1walk4","g1walk8"] },
+  g2:    { label: "노인2", walk: ["g2walk1","g2walk2","g2walk3","g2walk4","g2walk5","g2walk6"], atk: ["g2walk4","g2walk2"] }
 };
 
 /* 적이 움직이는 빠르기. 비프리 걷는 속도와 따로 둡니다.
@@ -590,16 +590,23 @@ function step(now) {
     const t = nearest();
     if (t) {
       const gap = t.x - S.x;
-      S.dir = gap > 0 ? 1 : -1;
-      if (Math.abs(gap) > cfg.size * 1.05) {
-        S.x += S.dir * cfg.speed * 1.6 * dt;
-        cycleFrames(now, WALK.frames, WALK.fps);
-      } else if (swinging0) {
+      if (!swinging0) S.dir = gap > 0 ? 1 : -1;   // 치는 동안엔 방향 고정
+      /* 주먹을 뻗는 동안은 무엇보다 먼저 그 모션을 그립니다.
+         때린 순간 적이 뒤로 밀려나는데, 거리부터 재면 뻗던 주먹이
+         중간에 걷기 그림으로 바뀌어 버립니다. 그러면 가만히 서 있는데
+         적만 날아가는 것처럼 보입니다. 수동 조작과 같은 규칙입니다 —
+         치는 동안에도 걸음은 그대로 갑니다.                        */
+      const far = Math.abs(gap) > cfg.size * 1.05;
+      if (far) S.x += S.dir * cfg.speed * 1.6 * dt;
+
+      if (swinging0) {
         const F = atkFrames();
-      draw(F[Math.min(F.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+        draw(F[Math.min(F.length - 1, Math.floor((now - S.atkFrom) / 140))]);
+      } else if (far) {
+        cycleFrames(now, WALK.frames, WALK.fps);
       } else {
         draw("batk2");
-        if (now >= S.atkUntil + 420) tryAttack();
+        if (now >= S.atkUntil + 220) tryAttack();
       }
     } else {
       draw("batk2");
