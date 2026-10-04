@@ -317,9 +317,13 @@ function render(dt) {
 /* ---------- 말풍선 ---------- */
 
 function linesNow() {
-  // 지금 하고 있는 동작의 대사. 자세가 아니거나(걷기·수동 조작)
-  // 그 자세에 대사가 없으면 설정의 기본 대사.
-  if (!S.manual && S.mode === "pose" && S.pose && S.pose.lines) return S.pose.lines;
+  // 지금 하고 있는 동작의 대사. 자세가 아니거나(걷기·수동 조작) 그 자세에
+  // 대사가 없으면 설정의 기본 대사.
+  //
+  // 예전에는 여기에 !S.manual 이 붙어 있었습니다. 수동에서는 자세를 아예
+  // 못 잡던 시절의 조건인데, 지금은 수동에서도 자세를 잡습니다. 그대로
+  // 두면 수동으로 고른 자세만 기본 대사를 떠들었습니다.
+  if (S.mode === "pose" && S.pose && S.pose.lines) return S.pose.lines;
   return cfg.lines;
 }
 /* 대사는 무작위가 아니라 '순서대로' 돕니다. 무작위면 같은 말이 연달아
@@ -565,6 +569,11 @@ if (tauri.on && window.__TAURI__.event) {
    그래서 전역 변수 하나가 아니라 배열이고, 각자 제 DOM 을 들고 있습니다. */
 const ES = [];
 
+/* 나오는 쪽은 번갈아 갑니다. 왼쪽 → 오른쪽 → 왼쪽 ...
+   마음대로 고르게 두면 같은 쪽에서 내리 세 번 나오기도 해서,
+   연달아 부를 때 한쪽에만 쌓입니다. */
+let spawnSide = 1;      // 처음 한 번은 왼쪽 (아래에서 뒤집고 씁니다)
+
 function spawn(kind) {
   const d = ENEMIES[kind];
   if (!d) return;
@@ -572,7 +581,8 @@ function spawn(kind) {
   el.className = "pet enemy";
   el.innerHTML = '<div class="hp"><i style="width:100%"></i></div><img alt="">';
   document.body.insertBefore(el, pet);     // 비프리보다 뒤에 섭니다
-  const side = Math.random() < 0.5 ? -1 : 1;
+  spawnSide = -spawnSide;
+  const side = spawnSide;      // -1 왼쪽, +1 오른쪽
   ES.push({
     kind, def: d, el,
     img: el.querySelector("img"),
