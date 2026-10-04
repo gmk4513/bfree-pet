@@ -215,25 +215,48 @@ const rand = (a, b) => a + Math.random() * (b - a);
 
 /* 소리. 받은 파일은 같은 효과음이 1초 간격으로 여러 번 녹음돼 있어서
    tools/cut_sound.py 로 첫 한 방만 잘라 썼습니다.
-   cloneNode 로 매번 새로 만듭니다. 같은 Audio 를 다시 play 하면 앞
-   소리가 끊겨서, 연속 점프에서 바로 티가 납니다.
-   play() 는 Promise 를 돌려주므로 try/catch 로는 거부를 못 잡습니다. */
-const SND = {};
-["jump", "attack", "hit"].forEach((k) => {
-  const a = new Audio("sound/" + k + ".wav");
-  a.preload = "auto";
-  SND[k] = a;
-});
+
+   ★ new Audio() 로 틀지 마세요. 이 wav 들은 <audio> 로 열면
+     networkState 가 2(받는 중)에 멈춘 채 readyState 가 영영 0 입니다.
+     오류도 안 납니다 — play() 는 그냥 조용히 아무 소리도 안 냅니다.
+     같은 파일을 WebAudio 로 받으면 바로 풀립니다(확인함).
+
+   그래서 한 번 받아 디코드해 두고, 재생은 그 버퍼로 합니다. 효과음을
+   겹쳐 트는 데도 이쪽이 맞습니다 — 한 번 울릴 때마다 노드 하나면 되고,
+   cloneNode 처럼 매번 미디어 요소를 새로 만들지 않습니다.           */
+const AC = window.AudioContext || window.webkitAudioContext;
+const BUF = {};
+let actx = null;
+if (AC) {
+  actx = new AC();
+  ["jump", "attack", "hit"].forEach((k) => {
+    fetch("sound/" + k + ".wav")
+      .then((r) => r.arrayBuffer())
+      .then((b) => actx.decodeAudioData(b))
+      .then((buf) => { BUF[k] = buf; })
+      // 소리가 없다고 펫이 멈추면 안 됩니다. 다만 조용히 삼키지는
+      // 않습니다 — 소리가 안 나는 이유를 못 찾는 게 더 비쌉니다.
+      .catch((e) => console.warn("[소리] " + k + " 못 읽음:", e));
+  });
+}
 function play(k) {
-  const a = SND[k];
-  if (!a) return;
+  const buf = BUF[k];
+  if (!actx || !buf) return;
+  // 브라우저는 사용자가 한 번 건드리기 전까지 소리를 재워 둡니다.
+  if (actx.state === "suspended") actx.resume();
   try {
-    const c = a.cloneNode();
-    c.volume = 0.55;
-    const r = c.play();
-    if (r && r.catch) r.catch(() => {});
+    const s = actx.createBufferSource();
+    s.buffer = buf;
+    const g = actx.createGain();
+    g.gain.value = 0.55;
+    s.connect(g).connect(actx.destination);
+    s.start();
   } catch (e) {}
 }
+// 첫 조작 때 깨워 둡니다. 안 그러면 첫 소리가 빕니다.
+["pointerdown", "keydown"].forEach((ev) => {
+  window.addEventListener(ev, () => { if (actx && actx.state === "suspended") actx.resume(); }, { once: true });
+});
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 /* ---------- 그리기 ---------- */

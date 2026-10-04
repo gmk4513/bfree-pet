@@ -155,6 +155,20 @@ python tools/cut_sheet.py "source-art/비프리_벽돌쌓기.png" bbrick --ancho
 
 ---
 
+### 소리는 WebAudio 로만
+
+`new Audio("sound/x.wav")` 로 틀지 마세요. 이 wav 들은 `<audio>` 로 열면
+`networkState` 가 2(받는 중)에 멈춘 채 `readyState` 가 영영 0 입니다.
+`error` 이벤트도 안 나고 `play()` 도 거부되지 않습니다 — 그냥 아무
+소리도 안 납니다. 가장 찾기 어려운 종류의 고장입니다.
+
+같은 파일을 `fetch` + `decodeAudioData` 로 받으면 즉시 풀립니다.
+그래서 `ui/pet.js` 는 셋 다 한 번 디코드해 두고 `AudioBufferSourceNode`
+로 재생합니다. 효과음을 겹쳐 트는 데도 이쪽이 맞습니다.
+
+소리를 못 읽으면 `console.warn("[소리] ...")` 가 남습니다. 조용히
+삼키면 또 같은 자리에서 헤맵니다.
+
 ## 5. 서명 — 경고창을 없앨 수 있나
 
 **없앨 수 없습니다. 돈을 내도 바로는 안 됩니다.** (2026-10 기준)
