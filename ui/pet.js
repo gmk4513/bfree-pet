@@ -173,7 +173,7 @@ const FALLBACK = {
    되어 아무 일도 하지 않습니다. 한 벌의 코드로 둘 다 돌리기 위한 장치입니다. */
 const tauri = (function () {
   const T = window.__TAURI__;
-  if (!T) return { on: false, setClickThrough() {}, quit() {}, focus() {} };
+  if (!T) return { on: false, setClickThrough() {}, quit() {}, focus() {}, setManual() {} };
   const win = T.window.getCurrentWindow();
   return {
     on: true,
@@ -186,11 +186,23 @@ const tauri = (function () {
     async focus() {
       // 키보드를 받으려면 창이 포커스를 가져야 합니다.
       try { await win.setFocus(); } catch (e) {}
+    },
+    /* 수동 / 자동을 바꿀 때 '이 창이 포커스를 받을 수 있는지'까지 같이
+       바꿉니다. 자동일 때는 아예 못 받는 창이 됩니다. 화면에서 키를
+       무시하는 것만으로는 모자랍니다 — 창이 포커스를 쥐고 있으면 그 키는
+       원래 쓰려던 프로그램에도 안 가고 그냥 사라집니다. */
+    async setManual(on) {
+      try { await T.core.invoke("set_manual", { on: !!on }); } catch (e) {}
     }
   };
 })();
 
 /* ---------- 상태 ---------- */
+
+// 이 시각까지는 포커스를 도로 가져오지 않습니다. 트레이 메뉴가 열려 있는
+// 동안 쓰입니다 — 아래 blur 처리를 보세요.
+let focusGraceUntil = 0;
+
 const S = {
   x: 160, dir: 1,
   mode: "walk",          // walk | rest | pose | hit
@@ -409,7 +421,14 @@ if (tauri.on && window.__TAURI__.event) {
 
   /* 트레이 메뉴. Rust 는 누른 항목의 id 만 보내고, 뜻은 여기서 풉니다.
      동작을 추가할 때 Rust 를 안 고쳐도 되게 하려고 이렇게 나눴습니다. */
+  // 트레이 메뉴가 열렸습니다. 고를 동안은 포커스를 뺏어 오지 않습니다.
+  window.__TAURI__.event.listen("trayopen", () => {
+    focusGraceUntil = performance.now() + 8000;
+  });
+
   window.__TAURI__.event.listen("menu", (e) => {
+    // 골랐으면 더 참을 이유가 없습니다
+    focusGraceUntil = performance.now() + 300;
     const id = String(e.payload || "");
     if (id.startsWith("spawn:")) { spawn(id.slice(6)); return; }
     if (id.startsWith("pose:")) {
@@ -565,10 +584,11 @@ function goManual() {
   S.manual = true;
   S.mode = "walk"; S.pose = null; S.sayIdx = 0; hush();
   S.nextSay = performance.now() + 400;
-  tauri.focus();
+  tauri.setManual(true);     // 포커스를 받을 수 있게 열고 가져옵니다
 }
 function goAuto() {
   S.manual = false;
+  tauri.setManual(false);    // 다시 포커스를 못 받는 창으로. 키는 원래 쓰던 곳으로 갑니다
   S.keys.left = S.keys.right = S.keys.jump = S.keys.atk = false;
   S.y = 0; S.vy = 0;
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
@@ -593,6 +613,23 @@ function onKey(e, down) {
 }
 window.addEventListener("keydown", (e) => onKey(e, true));
 window.addEventListener("keyup",   (e) => onKey(e, false));
+
+/* 수동 조작 중에는 키보드를 놓지 않습니다. 다른 곳을 눌러 포커스를
+   뺏기면 도로 가져옵니다. 안 그러면 한 번 딴 데를 누른 뒤로 조작이
+   먹지 않습니다.
+
+   단, 트레이 메뉴가 열렸을 때는 참습니다. 메뉴를 여는 것도 포커스를
+   뺏는 일이라, 그때 바로 도로 가져오면 메뉴가 닫혀 버려서 수동을 끌
+   방법이 없어집니다. Esc 로도 언제든 자동으로 빠져나옵니다. */
+window.addEventListener("blur", () => {
+  if (!S.manual) return;
+  setTimeout(() => {
+    if (!S.manual) return;
+    if (performance.now() < focusGraceUntil) return;
+    if (document.hasFocus()) return;
+    tauri.focus();
+  }, 250);
+});
 
 /* ---------- 고리 ---------- */
 

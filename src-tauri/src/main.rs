@@ -3,7 +3,7 @@
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
-    tray::TrayIconBuilder,
+    tray::{TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, PhysicalPosition, PhysicalSize,
 };
 
@@ -14,9 +14,28 @@ fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+/// 수동 / 자동을 바꿀 때 창이 키보드를 받을 수 있는지를 함께 바꿉니다.
+///
+/// 자동일 때는 아예 '포커스를 못 받는 창'으로 만듭니다. 윈도우에서는
+/// WS_EX_NOACTIVATE 가 걸립니다. 그래야 펫을 띄워 둔 채로 다른 일을 할 때
+/// 이 창이 키보드를 가로채는 일이 없습니다. 화면 쪽에서 키를 무시하는
+/// 것만으로는 부족합니다 — 창이 포커스를 쥐고 있으면 그 키는 원래 쓰려던
+/// 프로그램에도 안 갑니다. 그냥 사라집니다.
+///
+/// 수동일 때는 반대로 포커스를 받을 수 있게 열고 바로 가져옵니다.
+#[tauri::command]
+fn set_manual(app: tauri::AppHandle, on: bool) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.set_focusable(on);
+        if on {
+            let _ = w.set_focus();
+        }
+    }
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![quit_app])
+        .invoke_handler(tauri::generate_handler![quit_app, set_manual])
         .setup(|app| {
             let win = app.get_webview_window("main").unwrap();
 
@@ -31,6 +50,9 @@ fn main() {
             // 기본은 클릭 통과입니다. 이걸 안 켜면 투명한 판이 화면 전체를
             // 덮고 있어서 바탕화면도 다른 창도 누를 수 없게 됩니다.
             let _ = win.set_ignore_cursor_events(true);
+
+            // 시작은 자동입니다. 포커스를 못 받는 창으로 열어 둡니다.
+            let _ = win.set_focusable(false);
 
             /* ---------- 트레이 메뉴 ----------
                창에는 버튼을 둘 자리가 없습니다. 투명한 판이라 UI 를 띄우면
@@ -68,17 +90,20 @@ fn main() {
                 .tooltip("비프리 데스크톱 펫")
                 .menu(&menu)
                 .show_menu_on_left_click(true)
+                // 트레이를 눌러 메뉴가 열렸다고 화면에 알립니다. 수동일 때
+                // 창이 포커스를 도로 뺏어 오는데, 그때 메뉴가 닫혀 버리면
+                // 수동을 끌 방법이 없어집니다. 화면은 이 신호를 받고 잠깐
+                // 포커스를 안 가져갑니다.
+                .on_tray_icon_event(|tray, ev| {
+                    if let TrayIconEvent::Click { .. } = ev {
+                        let _ = tray.app_handle().emit("trayopen", ());
+                    }
+                })
                 .on_menu_event(move |app, ev| {
                     let id = ev.id().as_ref().to_string();
                     if id == "app:quit" {
                         app.exit(0);
                         return;
-                    }
-                    // 수동 조작을 켜려면 창이 키보드를 받아야 합니다.
-                    if id == "mode:manual" {
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.set_focus();
-                        }
                     }
                     let _ = app.emit("menu", id);
                 })
