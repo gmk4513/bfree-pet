@@ -530,6 +530,17 @@ function toggleManual() {
   bar.addEventListener("pointercancel", end);
 })();
 
+/* 조작키는 운영체제마다 다릅니다.
+
+   맥에서 Ctrl + 방향키는 미션 컨트롤의 데스크톱 전환입니다. 시스템이
+   앱보다 먼저 가로채서, 공격하면서 걸으면 바탕화면이 휙휙 넘어갑니다.
+   그래서 맥에서는 Z(공격) / C(점프) 를 씁니다.                      */
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent || "");
+const KEYS = IS_MAC
+  ? { jump: ["KeyC"], atk: ["KeyZ"], jumpLabel: "C", atkLabel: "Z" }
+  : { jump: ["AltLeft", "AltRight"], atk: ["ControlLeft", "ControlRight"],
+      jumpLabel: "Alt", atkLabel: "Ctrl" };
+
 // 조작판의 안내 줄도 운영체제에 맞춥니다. 안 맞으면 그게 거짓말입니다.
 {
   const hint = document.getElementById("panelHint");
@@ -727,17 +738,6 @@ function goAuto() {
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
   syncPanel();
 }
-/* 조작키는 운영체제마다 다릅니다.
-
-   맥에서 Ctrl + 방향키는 미션 컨트롤의 데스크톱 전환입니다. 시스템이
-   앱보다 먼저 가로채서, 공격하면서 걸으면 바탕화면이 휙휙 넘어갑니다.
-   그래서 맥에서는 Z(공격) / C(점프) 를 씁니다.                      */
-const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent || "");
-const KEYS = IS_MAC
-  ? { jump: ["KeyC"], atk: ["KeyZ"], jumpLabel: "C", atkLabel: "Z" }
-  : { jump: ["AltLeft", "AltRight"], atk: ["ControlLeft", "ControlRight"],
-      jumpLabel: "Alt", atkLabel: "Ctrl" };
-
 function onKey(e, down) {
   /* ★ 수동 조작일 때만 키를 받습니다.
      자동일 때도 받으면, 다른 창에서 일하다 방향키나 Ctrl 을 누르는

@@ -35,6 +35,11 @@ jobs:
       - run: npm install
 
       # .dmg 는 안 만듭니다. 띄워 보기만 할 거라 .app 이면 충분하고 더 빠릅니다.
+      # 빌드는 20분이 걸립니다. 화면이 빈 채로 나오는 사고는 여기서 2초면
+      # 걸립니다 — 실제로 한 번 당했습니다.
+      - name: pet.js 돌려 보기
+        run: node tools/smoke.js
+
       - name: 앱 빌드
         run: npm run tauri build -- --bundles app
 
