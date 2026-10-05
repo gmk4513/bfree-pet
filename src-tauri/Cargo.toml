@@ -23,3 +23,8 @@ lto = true
 opt-level = "s"
 panic = "abort"
 strip = true
+
+# 맥에서만 씁니다. 창 레벨을 독 위로 올리려면 NSWindow 에 직접
+# 말을 걸어야 하는데, Tauri 는 그 레벨을 정할 길을 안 열어 둡니다.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"

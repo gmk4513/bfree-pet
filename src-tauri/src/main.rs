@@ -33,6 +33,30 @@ fn set_manual(app: tauri::AppHandle, on: bool) {
     }
 }
 
+/* ---------- 맥 전용 ----------
+   창을 독 위로 올립니다.
+
+   Tauri 의 alwaysOnTop 은 맥에서 NSFloatingWindowLevel(3) 입니다.
+   그런데 독은 레벨 20, 메뉴 막대는 24 입니다. 그래서 그냥 두면 펫이
+   독 뒤로 숨어 다리가 잘립니다 — 깃허브 맥에서 띄워 찍어 확인했습니다.
+   윈도우에서는 작업표시줄이 보통 창이라 이런 일이 없습니다.
+
+   21 로 둡니다. 독(20)보다는 위, 메뉴 막대(24)보다는 아래입니다.
+   메뉴 막대까지 덮으면 그게 더 거슬립니다.                           */
+#[cfg(target_os = "macos")]
+const ABOVE_DOCK: isize = 21;
+
+#[cfg(target_os = "macos")]
+fn raise_above_dock(win: &tauri::WebviewWindow) {
+    use objc2::{msg_send, runtime::AnyObject};
+    if let Ok(ptr) = win.ns_window() {
+        unsafe {
+            let ns = ptr as *mut AnyObject;
+            let _: () = msg_send![ns, setLevel: ABOVE_DOCK];
+        }
+    }
+}
+
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![quit_app, set_manual])
@@ -53,6 +77,30 @@ fn main() {
 
             // 시작은 자동입니다. 포커스를 못 받는 창으로 열어 둡니다.
             let _ = win.set_focusable(false);
+
+            /* 맥에서는 독 위로 올리고, 메뉴 막대와 독 아이콘에서 뺍니다.
+               바탕화면에 사는 물건이라 메뉴 막대를 차지할 이유가 없습니다.
+               조작은 트레이와 창 안 조작판으로 다 됩니다.             */
+            #[cfg(target_os = "macos")]
+            {
+                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                raise_above_dock(&win);
+
+                // tao 가 alwaysOnTop 레벨을 메인 큐에 비동기로 겁니다.
+                // 여기서 한 번만 올려 두면 그쪽이 나중에 덮어씁니다.
+                let h = app.handle().clone();
+                std::thread::spawn(move || {
+                    for _ in 0..6 {
+                        std::thread::sleep(std::time::Duration::from_millis(300));
+                        let hh = h.clone();
+                        let _ = h.run_on_main_thread(move || {
+                            if let Some(w) = hh.get_webview_window("main") {
+                                raise_above_dock(&w);
+                            }
+                        });
+                    }
+                });
+            }
 
             /* ---------- 트레이 메뉴 ----------
                창에는 버튼을 둘 자리가 없습니다. 투명한 판이라 UI 를 띄우면
