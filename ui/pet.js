@@ -530,6 +530,15 @@ function toggleManual() {
   bar.addEventListener("pointercancel", end);
 })();
 
+// 조작판의 안내 줄도 운영체제에 맞춥니다. 안 맞으면 그게 거짓말입니다.
+{
+  const hint = document.getElementById("panelHint");
+  if (hint) {
+    hint.textContent = "←→ 이동 · " + KEYS.jumpLabel + " 점프 · "
+                     + KEYS.atkLabel + " 공격 · Esc 자동 복귀";
+  }
+}
+
 panel.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
@@ -718,21 +727,34 @@ function goAuto() {
   S.mode = "walk"; S.until = performance.now() + 3000; S.turnAt = performance.now() + 1500;
   syncPanel();
 }
+/* 조작키는 운영체제마다 다릅니다.
+
+   맥에서 Ctrl + 방향키는 미션 컨트롤의 데스크톱 전환입니다. 시스템이
+   앱보다 먼저 가로채서, 공격하면서 걸으면 바탕화면이 휙휙 넘어갑니다.
+   그래서 맥에서는 Z(공격) / C(점프) 를 씁니다.                      */
+const IS_MAC = /Mac|iPhone|iPad/.test(navigator.userAgent || "");
+const KEYS = IS_MAC
+  ? { jump: ["KeyC"], atk: ["KeyZ"], jumpLabel: "C", atkLabel: "Z" }
+  : { jump: ["AltLeft", "AltRight"], atk: ["ControlLeft", "ControlRight"],
+      jumpLabel: "Alt", atkLabel: "Ctrl" };
+
 function onKey(e, down) {
   /* ★ 수동 조작일 때만 키를 받습니다.
      자동일 때도 받으면, 다른 창에서 일하다 방향키나 Ctrl 을 누르는
      순간 펫이 조작 모드로 바뀌어 버립니다. 켜는 건 트레이 메뉴로만. */
   if (!S.manual) return;
 
+  // code 로 봅니다. 자판 배열이 달라도 자리가 같으면 같은 키입니다.
+  const c = e.code;
   const k = e.key;
-  if (k === "ArrowLeft")       { S.keys.left = down; }
-  else if (k === "ArrowRight") { S.keys.right = down; }
-  // Alt 는 누르고 있는 동안 눌린 상태로 둡니다. 착지하는 순간 고리에서
-  // 다시 뛰게 해서, 누르고 있으면 연속으로 뜁니다.
-  else if (k === "Alt")        { S.keys.jump = down; if (down) tryJump(); }
-  // Alt 와 같은 방식. 누르고 있으면 한 번 끝날 때마다 다시 칩니다.
-  else if (k === "Control")    { S.keys.atk = down; if (down) tryAttack(); }
-  else if (k === "Escape")     { if (down) goAuto(); }
+  if (c === "ArrowLeft"  || k === "ArrowLeft")  { S.keys.left = down; }
+  else if (c === "ArrowRight" || k === "ArrowRight") { S.keys.right = down; }
+  // 누르고 있는 동안 눌린 상태로 둡니다. 착지하는 순간 고리에서 다시
+  // 뛰게 해서, 누르고 있으면 연속으로 뜁니다.
+  else if (KEYS.jump.includes(c)) { S.keys.jump = down; if (down) tryJump(); }
+  // 점프와 같은 방식. 누르고 있으면 한 번 끝날 때마다 다시 칩니다.
+  else if (KEYS.atk.includes(c))  { S.keys.atk = down; if (down) tryAttack(); }
+  else if (c === "Escape" || k === "Escape") { if (down) goAuto(); }
   else return;
   e.preventDefault();   // Alt 는 메뉴로, 방향키는 스크롤로 새어 나갑니다
 }

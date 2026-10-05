@@ -31,6 +31,11 @@ fn set_manual(app: tauri::AppHandle, on: bool) {
             let _ = w.set_focus();
         }
     }
+    // AppKit 은 메인 스레드에서만 만집니다. 명령은 다른 스레드에서 올 수 있습니다.
+    #[cfg(target_os = "macos")]
+    {
+        let _ = app.run_on_main_thread(move || app_activate(on));
+    }
 }
 
 /* ---------- 맥 전용 ----------
@@ -45,6 +50,36 @@ fn set_manual(app: tauri::AppHandle, on: bool) {
    메뉴 막대까지 덮으면 그게 더 거슬립니다.                           */
 #[cfg(target_os = "macos")]
 const ABOVE_DOCK: isize = 21;
+
+/* 앱 자체를 켜고 끕니다.
+
+   set_focusable(false) 는 '앞으로 포커스를 새로 받지 말라'는 설정이지,
+   '지금 쥔 포커스를 뱉으라'는 뜻이 아닙니다. 수동에서 자동으로 넘어가는
+   순간 창은 이미 포커스를 쥐고 있어서, 맥에서는 그대로 쥔 채 남습니다.
+   그러면 자동인데도 키가 캐릭터한테도 안 가고 쓰던 프로그램한테도 안 가고
+   그냥 사라집니다.
+
+   윈도우에서는 자동으로 갈 때 클릭 통과도 같이 켜지니까, 아무 데나 한 번
+   누르는 순간 저쪽이 포커스를 가져가 저절로 정리됩니다. 맥에서도 같은 일이
+   클릭 없이 바로 일어나게 NSApp 에 직접 말합니다.
+
+   켤 때 activate 가 필요한 이유는 Accessory 앱이라서입니다. 독에도 메뉴
+   막대에도 없는 앱은 창을 띄워도 키 윈도우가 안 되는 경우가 있습니다.   */
+#[cfg(target_os = "macos")]
+fn app_activate(on: bool) {
+    use objc2::{class, msg_send, runtime::AnyObject};
+    unsafe {
+        let ns_app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+        if ns_app.is_null() {
+            return;
+        }
+        if on {
+            let _: () = msg_send![ns_app, activateIgnoringOtherApps: true];
+        } else {
+            let _: () = msg_send![ns_app, deactivate];
+        }
+    }
+}
 
 #[cfg(target_os = "macos")]
 fn raise_above_dock(win: &tauri::WebviewWindow) {
