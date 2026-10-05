@@ -1,0 +1,79 @@
+#  맥에서 실제로 어떻게 보이는지 확인하는 판입니다.
+#
+#  맥이 없어서 '독에 가리는지'를 추측으로만 말할 수 있었습니다. 깃허브가
+#  빌려 주는 맥은 진짜 맥이고 화면이 켜져 있으니, 거기서 앱을 띄워 놓고
+#  창 레벨을 재고 화면을 찍어 옵니다.
+#
+#  Actions 탭 → mac-check → Run workflow 로 돌립니다.
+#  끝나면 결과물(mac-check)에 windows.txt 와 shot.png 가 들어 있습니다.
+
+name: mac-check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: macos-latest
+    name: 맥에서 띄워 보기
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust 캐시
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ./src-tauri -> target
+          key: mac-check
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      # .dmg 는 안 만듭니다. 띄워 보기만 할 거라 .app 이면 충분하고 더 빠릅니다.
+      - name: 앱 빌드
+        run: npm run tauri build -- --bundles app
+
+      - name: 앱 띄우기
+        run: |
+          APP=$(find src-tauri/target -maxdepth 6 -name "*.app" | head -1)
+          echo "찾은 앱: $APP"
+          if [ -z "$APP" ]; then echo "::error::.app 을 못 찾았습니다"; exit 1; fi
+          open "$APP"
+          sleep 12
+          echo "--- 떠 있는 프로세스 ---"
+          pgrep -lf -i bfree || echo "(비프리 프로세스가 안 보입니다)"
+
+      # 창 레벨은 화면 녹화 권한 없이도 읽힙니다. 스크린샷이 막혀도 이건 나옵니다.
+      - name: 창 레벨 재기
+        run: swift .github/mac-windows.swift
+
+      # 이쪽은 권한(TCC)에 막힐 수 있습니다. 막혀도 판을 멈추지 않습니다.
+      - name: 화면 찍기
+        continue-on-error: true
+        run: |
+          screencapture -x shot.png
+          ls -la shot.png
+          sips -g pixelWidth -g pixelHeight shot.png || true
+
+      - name: 앱 로그 긁기
+        if: always()
+        continue-on-error: true
+        run: |
+          log show --last 3m --predicate 'process CONTAINS[c] "bfree"' --info --debug > app-log.txt 2>&1 || true
+          tail -40 app-log.txt || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mac-check
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            windows.txt
+            shot.png
+            app-log.txt
