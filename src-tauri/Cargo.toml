@@ -1,6 +1,6 @@
 [package]
 name = "bfree-pet"
-version = "0.1.0"
+version = "0.1.1"
 description = "학사모 비프리 데스크톱 펫"
 authors = ["gangmin"]
 edition = "2021"
