@@ -39,6 +39,19 @@ for r in rows {
 let pet  = rows.first { $0.owner.contains("Bfree") || $0.owner.contains("비프리") }
 let dock = rows.first { $0.owner == "Dock" }
 
+// 우리 앱이 가진 창을 전부 봅니다. 메뉴 막대의 트레이 아이콘도
+// 하나의 창(레벨 25 언저리)으로 잡힙니다.
+let mine = rows.filter { $0.owner.contains("Bfree") || $0.owner.contains("비프리") }
+out += "\n--- 우리 앱이 가진 창 \(mine.count)개 ---\n"
+for m in mine {
+    let kind = m.layer >= 24 ? "메뉴 막대 — 트레이 아이콘으로 보임" : "펫 창"
+    out += String(format: "레벨 %4d  %5.0f x %-5.0f @ %5.0f,%-5.0f  %@\n",
+                  m.layer, m.w, m.h, m.x, m.y, kind)
+}
+if mine.count < 2 {
+    out += "창이 하나뿐입니다. 트레이 아이콘이 안 잡혔거나 메뉴 막대에 안 올라갔습니다.\n"
+}
+
 out += "\n--- 판정 ---\n"
 switch (pet, dock) {
 case let (p?, d?):

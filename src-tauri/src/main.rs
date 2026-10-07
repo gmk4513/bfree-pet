@@ -81,6 +81,76 @@ fn app_activate(on: bool) {
     }
 }
 
+/// 앱이 지금 활성 상태인지. 자가 점검에서 씁니다.
+#[cfg(target_os = "macos")]
+fn ns_app_is_active() -> bool {
+    use objc2::{class, msg_send, runtime::AnyObject};
+    unsafe {
+        let ns_app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+        if ns_app.is_null() {
+            return false;
+        }
+        let active: bool = msg_send![ns_app, isActive];
+        active
+    }
+}
+
+/* 자가 점검.  --selftest 를 붙여 띄우면 혼자 모드를 오가며 그때마다
+   '창이 키보드를 쥐고 있는지'를 적어 둡니다. 맥이 없어서 손으로 못
+   눌러 보니, 적어도 포커스가 의도대로 오가는지는 기계가 재게 합니다.
+
+   마지막에 수동으로 켜 둔 채 멈춥니다. 그래야 그다음에 바깥에서
+   키를 눌러 보는 시험을 이어서 할 수 있습니다.                      */
+#[cfg(target_os = "macos")]
+fn selftest(app: tauri::AppHandle) {
+    use std::sync::{Arc, Mutex};
+    use std::time::Duration;
+
+    let log: Arc<Mutex<String>> = Arc::new(Mutex::new(String::from(
+        "단계	창이 포커스를 쥐었나	앱이 활성인가
+",
+    )));
+
+    let snap = |label: &str, app: &tauri::AppHandle, log: &Arc<Mutex<String>>| {
+        let l = log.clone();
+        let a = app.clone();
+        let label = label.to_string();
+        let _ = app.run_on_main_thread(move || {
+            let focused = a
+                .get_webview_window("main")
+                .and_then(|w| w.is_focused().ok())
+                .unwrap_or(false);
+            let active = ns_app_is_active();
+            if let Ok(mut s) = l.lock() {
+                s.push_str(&format!("{}	{}	{}
+", label, focused, active));
+            }
+        });
+        std::thread::sleep(Duration::from_millis(800));
+    };
+
+    std::thread::sleep(Duration::from_secs(8)); // 창이 다 뜰 때까지
+    snap("1_시작_자동", &app, &log);
+
+    set_manual(app.clone(), true);
+    std::thread::sleep(Duration::from_secs(3));
+    snap("2_수동_켬", &app, &log);
+
+    set_manual(app.clone(), false);
+    std::thread::sleep(Duration::from_secs(3));
+    snap("3_자동_복귀", &app, &log);
+
+    // 바깥에서 키를 눌러 볼 수 있게 수동으로 켜 두고 멈춥니다
+    set_manual(app.clone(), true);
+    std::thread::sleep(Duration::from_secs(3));
+    snap("4_수동_유지", &app, &log);
+
+    let path = std::path::PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()))
+        .join("bfree-selftest.log");
+    let text = log.lock().map(|s| s.clone()).unwrap_or_default();
+    let _ = std::fs::write(path, text);
+}
+
 #[cfg(target_os = "macos")]
 fn raise_above_dock(win: &tauri::WebviewWindow) {
     use objc2::{msg_send, runtime::AnyObject};
@@ -123,6 +193,12 @@ fn main() {
 
                 // tao 가 alwaysOnTop 레벨을 메인 큐에 비동기로 겁니다.
                 // 여기서 한 번만 올려 두면 그쪽이 나중에 덮어씁니다.
+                // --selftest 로 띄우면 혼자 모드를 오가며 기록합니다
+                if std::env::args().any(|a| a == "--selftest") {
+                    let h = app.handle().clone();
+                    std::thread::spawn(move || selftest(h));
+                }
+
                 let h = app.handle().clone();
                 std::thread::spawn(move || {
                     for _ in 0..6 {

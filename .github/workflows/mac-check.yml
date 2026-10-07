@@ -1,11 +1,13 @@
-#  맥에서 실제로 어떻게 보이는지 확인하는 판입니다.
+#  맥에서 실제로 어떻게 보이고 어떻게 도는지 확인하는 판입니다.
 #
-#  맥이 없어서 '독에 가리는지'를 추측으로만 말할 수 있었습니다. 깃허브가
-#  빌려 주는 맥은 진짜 맥이고 화면이 켜져 있으니, 거기서 앱을 띄워 놓고
-#  창 레벨을 재고 화면을 찍어 옵니다.
+#  맥이 없어서 손으로 못 눌러 보니, 기계가 대신 눌러 보게 합니다.
+#  확실히 되는 것과 될지 모르는 것을 나눠서 합니다.
 #
-#  Actions 탭 → mac-check → Run workflow 로 돌립니다.
-#  끝나면 결과물(mac-check)에 windows.txt 와 shot.png 가 들어 있습니다.
+#    확실히 됨 : 창 레벨(독과의 위아래), 트레이 아이콘 유무,
+#                모드 전환 때 포커스가 오가는지 (--selftest)
+#    될지 모름 : 실제 키 입력 — 접근성 권한(TCC)에 막힐 수 있습니다
+#
+#  Actions 탭 → mac-check → Run workflow
 
 name: mac-check
 
@@ -19,7 +21,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Rust 캐시
@@ -34,7 +35,6 @@ jobs:
 
       - run: npm install
 
-      # .dmg 는 안 만듭니다. 띄워 보기만 할 거라 .app 이면 충분하고 더 빠릅니다.
       # 빌드는 20분이 걸립니다. 화면이 빈 채로 나오는 사고는 여기서 2초면
       # 걸립니다 — 실제로 한 번 당했습니다.
       - name: pet.js 돌려 보기
@@ -43,34 +43,50 @@ jobs:
       - name: 앱 빌드
         run: npm run tauri build -- --bundles app
 
-      - name: 앱 띄우기
+      - name: 앱 띄우기 (자가 점검 모드)
         run: |
           APP=$(find src-tauri/target -maxdepth 6 -name "*.app" | head -1)
           echo "찾은 앱: $APP"
           if [ -z "$APP" ]; then echo "::error::.app 을 못 찾았습니다"; exit 1; fi
-          open "$APP"
-          sleep 12
-          echo "--- 떠 있는 프로세스 ---"
+          echo "APP=$APP" >> $GITHUB_ENV
+          open "$APP" --args --selftest
+          # 자가 점검이 8초 뒤 시작해서 네 단계를 밟습니다. 넉넉히 기다립니다.
+          sleep 30
           pgrep -lf -i bfree || echo "(비프리 프로세스가 안 보입니다)"
 
-      # 창 레벨은 화면 녹화 권한 없이도 읽힙니다. 스크린샷이 막혀도 이건 나옵니다.
-      - name: 창 레벨 재기
+      - name: 모드 전환 때 포커스가 오갔는지
+        run: |
+          echo "--- 자가 점검 기록 ---"
+          cat ~/bfree-selftest.log || echo "::warning::기록이 없습니다 (--selftest 가 안 돌았을 수 있음)"
+
+      - name: 창 레벨 · 트레이 아이콘
         run: swift .github/mac-windows.swift
 
-      # 이쪽은 권한(TCC)에 막힐 수 있습니다. 막혀도 판을 멈추지 않습니다.
-      - name: 화면 찍기
+      # 여기서부터는 접근성 권한에 막힐 수 있습니다. 막혀도 판은 안 멈춥니다.
+      - name: 키 입력 시험 (될지 모름)
         continue-on-error: true
         run: |
-          screencapture -x shot.png
-          ls -la shot.png
-          sips -g pixelWidth -g pixelHeight shot.png || true
+          screencapture -x before.png
+          echo "--- osascript 로 키를 눌러 봅니다 ---"
+          osascript -e 'tell application "System Events" to key code 124' \
+            && echo "오른쪽 방향키 보냄" || echo "접근성 권한 없음 — 예상된 실패"
+          for i in 1 2 3 4 5 6 7 8; do
+            osascript -e 'tell application "System Events" to key code 124' >/dev/null 2>&1 || true
+            sleep 0.3
+          done
+          sleep 1
+          screencapture -x after.png
+          ls -la before.png after.png
+
+      - name: 화면 찍기
+        continue-on-error: true
+        run: screencapture -x shot.png
 
       - name: 앱 로그 긁기
         if: always()
         continue-on-error: true
         run: |
           log show --last 3m --predicate 'process CONTAINS[c] "bfree"' --info --debug > app-log.txt 2>&1 || true
-          tail -40 app-log.txt || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -81,4 +97,7 @@ jobs:
           path: |
             windows.txt
             shot.png
+            before.png
+            after.png
             app-log.txt
+            ~/bfree-selftest.log
