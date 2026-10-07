@@ -64,11 +64,26 @@ jobs:
       #
       # 그래서 진짜로 눌러 봅니다. 조작판은 오른쪽 위 고정 위치라
       # 좌표를 알 수 있습니다 (1024x768 기준).
+      # 커서를 '움직여서' 올려놓는 도구입니다. osascript 의 click 은 커서를
+      # 순간이동시키고 바로 누르는데, 우리 창은 평소 클릭을 통과시키고
+      # 커서가 버튼 위에 온 걸 60ms 마다 확인해서 그제야 통과를 끕니다.
+      # 그래서 순간이동 클릭은 바탕화면으로 새어 나갑니다. 사람은 마우스를
+      # 올려놓고 누르니까 안 겪는 일입니다.
+      - name: cliclick 설치
+        continue-on-error: true
+        run: brew install cliclick
+
       - name: 사람처럼 눌러 보기
         continue-on-error: true
         run: |
           shot() { screencapture -x "$1.png"; echo "찍음: $1"; }
-          click() { osascript -e "tell application \"System Events\" to click at {$1, $2}" >/dev/null 2>&1                     && echo "눌렀습니다 ($1,$2)" || echo "::warning::클릭 실패 ($1,$2)"; }
+          click() {
+            # 올려놓고 → 기다리고 → 누릅니다
+            cliclick "m:$1,$2" >/dev/null 2>&1 || true
+            sleep 0.6
+            cliclick "c:$1,$2" >/dev/null 2>&1               && echo "눌렀습니다 ($1,$2)"               || osascript -e "tell application \"System Events\" to click at {$1, $2}" >/dev/null 2>&1               && echo "눌렀습니다 ($1,$2)" || echo "::warning::클릭 실패 ($1,$2)"
+            sleep 0.4
+          }
           key() { for i in $(seq 1 ${2:-1}); do
                     osascript -e "tell application \"System Events\" to key code $1" >/dev/null 2>&1 || true
                     sleep 0.25
