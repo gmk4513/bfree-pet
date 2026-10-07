@@ -43,40 +43,78 @@ jobs:
       - name: 앱 빌드
         run: npm run tauri build -- --bundles app
 
-      - name: 앱 띄우기 (자가 점검 모드)
+      - name: 앱 띄우기
         run: |
           APP=$(find src-tauri/target -maxdepth 6 -name "*.app" | head -1)
           echo "찾은 앱: $APP"
           if [ -z "$APP" ]; then echo "::error::.app 을 못 찾았습니다"; exit 1; fi
-          echo "APP=$APP" >> $GITHUB_ENV
-          open "$APP" --args --selftest
-          # 자가 점검이 8초 뒤 시작해서 네 단계를 밟습니다. 넉넉히 기다립니다.
-          sleep 30
+          open "$APP"
+          sleep 12
           pgrep -lf -i bfree || echo "(비프리 프로세스가 안 보입니다)"
 
-      - name: 모드 전환 때 포커스가 오갔는지
-        run: |
-          echo "--- 자가 점검 기록 ---"
-          cat ~/bfree-selftest.log || echo "::warning::기록이 없습니다 (--selftest 가 안 돌았을 수 있음)"
-
-      - name: 창 레벨 · 트레이 아이콘
+      - name: 창 레벨 · 독과의 위아래
         run: swift .github/mac-windows.swift
 
-      # 여기서부터는 접근성 권한에 막힐 수 있습니다. 막혀도 판은 안 멈춥니다.
-      - name: 키 입력 시험 (될지 모름)
+      # ── 여기서부터가 핵심입니다 ──
+      #
+      # 전에는 Rust 안에서 모드를 바꿔 놓고 쟀는데, 그러면 실제와 다릅니다.
+      # 요즘 맥은 '최근에 사용자가 건드린 앱'이 아니면 스스로 앞으로
+      # 나서는 걸 막습니다. 사람이 조작판 버튼을 누르는 그 클릭이 바로
+      # 그 '건드림'인데, 그게 빠진 채로 쟀던 겁니다.
+      #
+      # 그래서 진짜로 눌러 봅니다. 조작판은 오른쪽 위 고정 위치라
+      # 좌표를 알 수 있습니다 (1024x768 기준).
+      - name: 사람처럼 눌러 보기
         continue-on-error: true
         run: |
-          screencapture -x before.png
-          echo "--- osascript 로 키를 눌러 봅니다 ---"
-          osascript -e 'tell application "System Events" to key code 124' \
-            && echo "오른쪽 방향키 보냄" || echo "접근성 권한 없음 — 예상된 실패"
-          for i in 1 2 3 4 5 6 7 8; do
-            osascript -e 'tell application "System Events" to key code 124' >/dev/null 2>&1 || true
-            sleep 0.3
-          done
-          sleep 1
-          screencapture -x after.png
-          ls -la before.png after.png
+          shot() { screencapture -x "$1.png"; echo "찍음: $1"; }
+          click() { osascript -e "tell application \"System Events\" to click at {$1, $2}" >/dev/null 2>&1                     && echo "눌렀습니다 ($1,$2)" || echo "::warning::클릭 실패 ($1,$2)"; }
+          key() { for i in $(seq 1 ${2:-1}); do
+                    osascript -e "tell application \"System Events\" to key code $1" >/dev/null 2>&1 || true
+                    sleep 0.25
+                  done; echo "키 $1 를 ${2:-1}번 보냄"; }
+
+          shot 1-처음_자동
+
+          echo "::group::수동 조작 켜기"
+          click 777 184          # 조작판의 '수동 조작' 버튼
+          sleep 2
+          shot 2-수동_켠_뒤      # 버튼이 주황색이어야 맞습니다
+          echo "::endgroup::"
+
+          echo "::group::방향키로 움직여 보기"
+          key 124 12             # 오른쪽
+          shot 3-오른쪽_간_뒤
+          key 123 12             # 왼쪽
+          shot 4-왼쪽_간_뒤
+          echo "::endgroup::"
+
+          echo "::group::Z 공격 / C 점프"
+          key 6 4                # z
+          shot 5-공격
+          key 8 3                # c
+          shot 6-점프
+          echo "::endgroup::"
+
+          echo "::group::Esc 로 자동 복귀"
+          key 53 1               # esc
+          sleep 2
+          shot 7-자동_복귀       # 버튼이 회색으로 돌아와야 맞습니다
+          echo "::endgroup::"
+
+          echo "::group::두 번째로 수동 켜기 (여기가 의심 구간)"
+          click 777 184
+          sleep 2
+          shot 8-수동_두번째
+          key 124 12
+          shot 9-두번째_이동     # 캐릭터가 또 움직여야 맞습니다
+          echo "::endgroup::"
+
+          echo "::group::적 소환"
+          click 858 84           # '노인1'
+          sleep 3
+          shot 10-소환
+          echo "::endgroup::"
 
       - name: 화면 찍기
         continue-on-error: true
@@ -97,7 +135,5 @@ jobs:
           path: |
             windows.txt
             shot.png
-            before.png
-            after.png
+            *.png
             app-log.txt
-            ~/bfree-selftest.log
