@@ -14,6 +14,38 @@ fn quit_app(app: tauri::AppHandle) {
     app.exit(0);
 }
 
+/* 바닥 높이를 운영체제한테 물어봅니다.
+
+   캐릭터는 작업표시줄(윈도우) / 독(맥) 바로 위에 서야 합니다. 그런데 그
+   높이는 사람마다 다릅니다 — 작업표시줄을 크게 쓰는 사람, 독을 키운 사람,
+   자동 숨김으로 둔 사람, 옆에 붙여 둔 사람. 48px 로 박아 두면 누군가는
+   발이 잠기고 누군가는 공중에 뜹니다. 실제로 맥에서 발이 독에 잠겼습니다.
+
+   work_area 는 '작업표시줄을 뺀 쓸 수 있는 영역'이라, 화면 아래쪽과의
+   차이가 곧 작업표시줄 높이입니다. 운영체제가 직접 알려주는 값입니다.   */
+#[tauri::command]
+fn floor_offset(app: tauri::AppHandle) -> f64 {
+    let Some(win) = app.get_webview_window("main") else {
+        return -1.0;
+    };
+    let Ok(Some(mon)) = win.current_monitor() else {
+        return -1.0;
+    };
+    let work = mon.work_area();
+    let scale = mon.scale_factor().max(0.1);
+
+    let screen_bottom = mon.position().y + mon.size().height as i32;
+    let work_bottom = work.position.y + work.size.height as i32;
+    let gap = (screen_bottom - work_bottom) as f64 / scale;
+
+    // 말이 안 되는 값이면 화면 쪽에서 설정값을 쓰게 -1 을 돌려줍니다
+    if (0.0..=400.0).contains(&gap) {
+        gap
+    } else {
+        -1.0
+    }
+}
+
 /// 수동 / 자동을 바꿀 때 창이 키보드를 받을 수 있는지를 함께 바꿉니다.
 ///
 /// 자동일 때는 아예 '포커스를 못 받는 창'으로 만듭니다. 윈도우에서는
@@ -199,7 +231,7 @@ fn raise_above_dock(win: &tauri::WebviewWindow) {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![quit_app, set_manual])
+        .invoke_handler(tauri::generate_handler![quit_app, set_manual, floor_offset])
         .setup(|app| {
             let win = app.get_webview_window("main").unwrap();
 

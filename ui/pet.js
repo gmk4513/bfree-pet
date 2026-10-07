@@ -174,7 +174,7 @@ const FALLBACK = {
    되어 아무 일도 하지 않습니다. 한 벌의 코드로 둘 다 돌리기 위한 장치입니다. */
 const tauri = (function () {
   const T = window.__TAURI__;
-  if (!T) return { on: false, setClickThrough() {}, quit() {}, focus() {}, setManual() {} };
+  if (!T) return { on: false, setClickThrough() {}, quit() {}, focus() {}, setManual() {}, async floorOffset() { return -1; } };
   const win = T.window.getCurrentWindow();
   return {
     on: true,
@@ -194,6 +194,11 @@ const tauri = (function () {
        원래 쓰려던 프로그램에도 안 가고 그냥 사라집니다. */
     async setManual(on) {
       try { await T.core.invoke("set_manual", { on: !!on }); } catch (e) {}
+    },
+    /* 작업표시줄 높이를 운영체제한테 물어봅니다. 못 받으면 -1 이고,
+       그때는 설정의 floorOffset 을 씁니다. */
+    async floorOffset() {
+      try { return await T.core.invoke("floor_offset"); } catch (e) { return -1; }
     }
   };
 })();
@@ -965,7 +970,12 @@ async function boot() {
     // 설정을 못 읽어도 기본값으로 돌아갑니다. 펫이 안 뜨는 쪽이 더 나쁩니다.
   }
 
-  document.documentElement.style.setProperty("--floor", cfg.floorOffset + "px");
+  /* 캐릭터가 설 바닥. 작업표시줄 / 독 높이는 사람마다 달라서 숫자로 박아
+     두면 누군가는 발이 잠깁니다. 운영체제가 아는 값을 먼저 물어보고,
+     못 받을 때만 설정값으로 갑니다. */
+  const measured = await tauri.floorOffset();
+  const floor = measured >= 0 ? measured : cfg.floorOffset;
+  document.documentElement.style.setProperty("--floor", floor + "px");
   if (cfg.walkFps) WALK.fps = cfg.walkFps;      // 설정에서 걸음 빠르기를 바꿀 수 있게
 
   Object.keys(SPRITES).forEach((k) => { new Image().src = SPRITES[k].src; });
