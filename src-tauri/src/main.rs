@@ -36,6 +36,33 @@ fn set_manual(app: tauri::AppHandle, on: bool) {
     {
         let _ = app.run_on_main_thread(move || app_activate(on));
     }
+
+    /* 맥에서는 한 번 불러서 포커스를 못 잡는 경우가 있습니다. 특히 자동으로
+       내려놓았다가 다시 켤 때 그렇습니다 — 창을 '포커스 못 받는 창'으로
+       돌려놨다가 되살리는 길이라 한 틱에 안 먹습니다. 실제로 깃허브 맥에서
+       재 보니 두 번째로 켤 때 창이 키보드를 못 쥐었습니다.
+       그래서 잡을 때까지 몇 번 더 두드립니다.                             */
+    #[cfg(target_os = "macos")]
+    if on {
+        let app2 = app.clone();
+        std::thread::spawn(move || {
+            for _ in 0..6 {
+                std::thread::sleep(std::time::Duration::from_millis(120));
+                let got = app2
+                    .get_webview_window("main")
+                    .and_then(|w| w.is_focused().ok())
+                    .unwrap_or(false);
+                if got {
+                    break;
+                }
+                if let Some(w) = app2.get_webview_window("main") {
+                    let _ = w.set_focusable(true);
+                    let _ = w.set_focus();
+                }
+                let _ = app2.run_on_main_thread(|| app_activate(true));
+            }
+        });
+    }
 }
 
 /* ---------- 맥 전용 ----------
@@ -129,19 +156,27 @@ fn selftest(app: tauri::AppHandle) {
         std::thread::sleep(Duration::from_millis(800));
     };
 
+    /* 트레이 메뉴를 누른 것과 똑같은 길로 보냅니다.
+       set_manual 을 바로 부르면 창 설정만 바뀌고 화면(JS)은 여전히 자동이라,
+       정작 키를 받는 쪽은 꺼진 채로 재게 됩니다. 실제로 그렇게 재서
+       조작판 버튼이 켜지지도 않은 화면을 찍었습니다.                      */
+    let toggle = |app: &tauri::AppHandle| {
+        let _ = app.emit("menu", "mode:manual");
+    };
+
     std::thread::sleep(Duration::from_secs(8)); // 창이 다 뜰 때까지
     snap("1_시작_자동", &app, &log);
 
-    set_manual(app.clone(), true);
+    toggle(&app);
     std::thread::sleep(Duration::from_secs(3));
     snap("2_수동_켬", &app, &log);
 
-    set_manual(app.clone(), false);
+    toggle(&app);
     std::thread::sleep(Duration::from_secs(3));
     snap("3_자동_복귀", &app, &log);
 
     // 바깥에서 키를 눌러 볼 수 있게 수동으로 켜 두고 멈춥니다
-    set_manual(app.clone(), true);
+    toggle(&app);
     std::thread::sleep(Duration::from_secs(3));
     snap("4_수동_유지", &app, &log);
 

@@ -48,8 +48,10 @@ for m in mine {
     out += String(format: "레벨 %4d  %5.0f x %-5.0f @ %5.0f,%-5.0f  %@\n",
                   m.layer, m.w, m.h, m.x, m.y, kind)
 }
-if mine.count < 2 {
-    out += "창이 하나뿐입니다. 트레이 아이콘이 안 잡혔거나 메뉴 막대에 안 올라갔습니다.\n"
+// 메뉴 막대 아이콘(status item)은 여기 안 잡힙니다. 눈으로 봐야 합니다 —
+// 실제로 화면을 찍어 보면 아이콘이 멀쩡히 올라가 있는데도 여기선 1개로 나옵니다.
+if mine.count < 1 {
+    out += "펫 창이 아예 없습니다. 앱이 안 떴습니다.\n"
 }
 
 out += "\n--- 판정 ---\n"
